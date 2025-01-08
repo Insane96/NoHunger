@@ -12,6 +12,7 @@ import insane96mcp.insanelib.event.PlayerExhaustionEvent;
 import insane96mcp.insanelib.util.ClientUtils;
 import insane96mcp.insanelib.util.MCUtils;
 import insane96mcp.nohunger.NoHunger;
+import insane96mcp.nohunger.integration.AutumnityIntegration;
 import insane96mcp.nohunger.mixin.FoodDataAccessor;
 import insane96mcp.nohunger.mixin.client.GuiAccessor;
 import insane96mcp.nohunger.network.NetworkHandler;
@@ -47,6 +48,7 @@ import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.network.NetworkDirection;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
@@ -91,7 +93,7 @@ public class NoHungerFeature extends Feature {
     public static Boolean convertSaturationToHaste = true;
 
     @Config
-    @Label(name = "Buff cakes", description = "Make cakes restore 40% missing health")
+    @Label(name = "Buff cakes", description = "Make cakes restore 30% missing health, min 1 health")
     public static Boolean buffCakes = true;
 
     @Config
@@ -201,7 +203,7 @@ public class NoHungerFeature extends Feature {
         if (heal <= 0f)
             return;
         if (buffCakes && item == null)
-            heal = Math.max((player.getMaxHealth() - player.getHealth()) * 0.4f, 1f);
+            heal = Math.max((player.getMaxHealth() - player.getHealth()) * 0.3f, 1f);
         if (isRawFood && rawFoodHealPercentage != 1d)
             heal *= rawFoodHealPercentage;
         heal = applyModifiers(player, heal);
@@ -219,7 +221,7 @@ public class NoHungerFeature extends Feature {
             return;
 
         float heal = buffCakes && item == null
-                ? Math.max((player.getMaxHealth() - player.getHealth()) * 0.2f, 1f)
+                ? Math.max((player.getMaxHealth() - player.getHealth()) * 0.3f, 1f)
                 : getInstantHealAmount(foodProperties, isRawFood);
         heal = applyModifiers(player, heal);
         player.heal(heal);
@@ -274,9 +276,8 @@ public class NoHungerFeature extends Feature {
     }
 
     private static float applyModifiers(Player player, float amount) {
-        //TODO Autumnity Integration
-        //if (ModList.get().isLoaded("autumnity"))
-        //    amount = AutumnityIntegration.tryApplyFoulTaste(player, amount);
+        if (ModList.get().isLoaded("autumnity"))
+            amount = AutumnityIntegration.tryApplyFoulTaste(player, amount);
         return amount;
     }
 

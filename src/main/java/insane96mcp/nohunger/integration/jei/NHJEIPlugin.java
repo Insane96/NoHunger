@@ -1,6 +1,7 @@
 package insane96mcp.nohunger.integration.jei;
 
 import insane96mcp.nohunger.NoHunger;
+import insane96mcp.nohunger.feature.NoHungerFeature;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IRecipeRegistration;
@@ -19,6 +20,7 @@ public class NHJEIPlugin implements IModPlugin {
     @Override
     public void registerRecipes(@NotNull IRecipeRegistration registration) {
         IModPlugin.super.registerRecipes(registration);
-        registration.addIngredientInfo(Items.CAKE, Component.translatable("jei.info.nohunger.cake"));
+        if (NoHungerFeature.buffCakes)
+            registration.addIngredientInfo(Items.CAKE, Component.translatable("jei.info.nohunger.cake"));
     }
 }
