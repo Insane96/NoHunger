@@ -2,10 +2,14 @@
     "required": true,
     "package": "insane96mcp.nohunger.mixin",
     "compatibilityLevel": "JAVA_17",
-    "refmap": "iguanatweaksreborn.refmap.json",
+    "refmap": "nohunger.refmap.json",
     "plugin": "insane96mcp.nohunger.mixin.plugin.ModLoadedPlugin",
     "mixins": [
-        "FoodDataAccessor"
+        "FoodDataAccessor",
+        "integration.autumnity.CookedTurkeyBlockMixin",
+        "integration.autumnity.PancakeBlockMixin",
+        "integration.autumnity.TurkeyBlockMixin",
+        "integration.farmersdelight.PieBlockMixin"
     ],
     "minVersion": "0.8",
     "client": [

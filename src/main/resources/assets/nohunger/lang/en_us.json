@@ -1,0 +1,11 @@
+{
+    "nohunger.tooltip.health": "Health",
+    "nohunger.tooltip.missing_health": "Missing Health",
+    "nohunger.tooltip.sec": "sec",
+    "nohunger.tooltip.snack": "Snack",
+    "nohunger.tooltip.nosh": "Nosh",
+    "nohunger.tooltip.meal": "Meal",
+    "nohunger.tooltip.feast": "Feast",
+
+    "jei.info.nohunger.cake": "Restores a percentage of missing health"
+}
