@@ -13,6 +13,7 @@ import insane96mcp.insanelib.util.ClientUtils;
 import insane96mcp.insanelib.util.MCUtils;
 import insane96mcp.nohunger.NoHunger;
 import insane96mcp.nohunger.integration.AutumnityIntegration;
+import insane96mcp.nohunger.integration.FarmersDelightIntegration;
 import insane96mcp.nohunger.mixin.FoodDataAccessor;
 import insane96mcp.nohunger.mixin.client.GuiAccessor;
 import insane96mcp.nohunger.network.NetworkHandler;
@@ -80,9 +81,9 @@ public class NoHungerFeature extends Feature {
     @Config(min = 0d)
     @Label(name = "Food Heal.Saturation threshold", description = "Foods below this saturation will instantly heal, foods equal or above this threshold will have overtime heal.")
     public static Double instantHealSaturationThreshold = 4d;
-    @Config
+    /*@Config
     @Label(name = "Raw food.Heal Multiplier", description = "If true, raw food will heal by this percentage (this is applied after 'Food Heal.Health Multiplier'). Raw food is defined in the iguanatweaksreborn:raw_food tag")
-    public static Double rawFoodHealPercentage = 1d;
+    public static Double rawFoodHealPercentage = 1d;*/
 
     @Config
     @Label(name = "Convert Hunger to Weakness", description = "If true, Hunger effect is replaced by Weakness")
@@ -204,8 +205,8 @@ public class NoHungerFeature extends Feature {
             return;
         if (buffCakes && item == null)
             heal = Math.max((player.getMaxHealth() - player.getHealth()) * 0.3f, 1f);
-        if (isRawFood && rawFoodHealPercentage != 1d)
-            heal *= rawFoodHealPercentage;
+        /*if (isRawFood && rawFoodHealPercentage != 1d)
+            heal *= rawFoodHealPercentage;*/
         heal = applyModifiers(player, heal);
 
         float strength = Utils.computeFoodFormula(foodProperties, healOverTimeStrength) / 20f;
@@ -229,8 +230,8 @@ public class NoHungerFeature extends Feature {
 
     public static float getInstantHealAmount(FoodProperties foodProperties, boolean isRawFood) {
         float heal = Utils.computeFoodFormula(foodProperties, instantHeal);
-        if (isRawFood && rawFoodHealPercentage != 1d)
-            heal *= rawFoodHealPercentage;
+        /*if (isRawFood && rawFoodHealPercentage != 1d)
+            heal *= rawFoodHealPercentage;*/
         return heal;
     }
 
@@ -261,9 +262,8 @@ public class NoHungerFeature extends Feature {
             healAmount = regenLeft;
         if (player.getMaxHealth() - player.getHealth() < healAmount)
             healAmount = player.getMaxHealth() - player.getHealth();
-        //TODO Farmers' delight integration
-        /*if (ModList.get().isLoaded("farmersdelight"))
-            healAmount = FarmersDelightIntegration.tryApplyComfort(player, healAmount);*/
+        if (ModList.get().isLoaded("farmersdelight"))
+            healAmount = FarmersDelightIntegration.tryApplyComfort(player, healAmount);
         player.heal(healAmount);
         regenLeft -= healAmount;
         if (regenLeft <= 0f)
