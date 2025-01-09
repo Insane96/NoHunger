@@ -419,9 +419,9 @@ public class NoHungerFeature extends Feature {
                         .append(Component.translatable(HEALTH_LANG));
             }
             else if (heal >= 1)
-                component = Component.translatable("iguanatweaksreborn.tooltip.nosh");
+                component = Component.translatable("nohunger.tooltip.nosh");
             else
-                component = Component.translatable("iguanatweaksreborn.tooltip.snack");
+                component = Component.translatable("nohunger.tooltip.snack");
         }
         if (MCUtils.getFoodSaturationRestored(food) >= instantHealSaturationThreshold && doesHealOverTime()) {
             //noinspection ConstantConditions
@@ -438,9 +438,9 @@ public class NoHungerFeature extends Feature {
                         .append(Component.translatable(SEC_LANG));
             }
             else {
-                component = Component.translatable("iguanatweaksreborn.tooltip.meal");
+                component = Component.translatable("nohunger.tooltip.meal");
                 if (heal > 8)
-                    component = Component.translatable("iguanatweaksreborn.tooltip.feast");
+                    component = Component.translatable("nohunger.tooltip.feast");
             }
         }
         if (component != null)
