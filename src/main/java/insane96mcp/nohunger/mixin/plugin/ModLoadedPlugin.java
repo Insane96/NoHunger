@@ -13,10 +13,10 @@ import java.util.function.Supplier;
 
 public class ModLoadedPlugin implements IMixinConfigPlugin {
     private static final Map<String, Supplier<Boolean>> CONDITIONS = ImmutableMap.<String, Supplier<Boolean>>builder()
-            .put("insane96mcp.iguanatweaksreborn.mixin.integration.autumnity.CookedTurkeyBlockMixin", () -> LoadingModList.get().getModFileById("autumnity") != null)
-            .put("insane96mcp.iguanatweaksreborn.mixin.integration.autumnity.TurkeyBlockMixin", () -> LoadingModList.get().getModFileById("autumnity") != null)
-            .put("insane96mcp.iguanatweaksreborn.mixin.integration.autumnity.PancakeBlockMixin", () -> LoadingModList.get().getModFileById("autumnity") != null)
-            .put("insane96mcp.iguanatweaksreborn.mixin.integration.farmersdelight.PieBlockMixin", () -> LoadingModList.get().getModFileById("farmersdelight") != null)
+            .put("insane96mcp.nohunger.mixin.integration.autumnity.CookedTurkeyBlockMixin", () -> LoadingModList.get().getModFileById("autumnity") != null)
+            .put("insane96mcp.nohunger.mixin.integration.autumnity.TurkeyBlockMixin", () -> LoadingModList.get().getModFileById("autumnity") != null)
+            .put("insane96mcp.nohunger.mixin.integration.autumnity.PancakeBlockMixin", () -> LoadingModList.get().getModFileById("autumnity") != null)
+            .put("insane96mcp.nohunger.mixin.integration.farmersdelight.PieBlockMixin", () -> LoadingModList.get().getModFileById("farmersdelight") != null)
             .build();
     @Override
     public void onLoad(String mixinPackage) {
