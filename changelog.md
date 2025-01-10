@@ -1,5 +1,8 @@
 # Changelog
 
+## Upcoming
+* Reduced Foul Taste bonus heal (+50% -> +20%)
+
 ## 1.0.2
 * Fixed startup crash
 * Fixed errors when integration mods were missing
