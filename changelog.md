@@ -1,6 +1,7 @@
 # Changelog
 
-## Upcoming
+## 1.0.2
+* Fixed startup crash
 * Fixed errors when integration mods were missing
 * Fixed missing tooltips
 
