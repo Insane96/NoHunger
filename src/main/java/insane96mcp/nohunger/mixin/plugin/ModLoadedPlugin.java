@@ -17,6 +17,7 @@ public class ModLoadedPlugin implements IMixinConfigPlugin {
             .put("insane96mcp.nohunger.mixin.integration.autumnity.TurkeyBlockMixin", () -> LoadingModList.get().getModFileById("autumnity") != null)
             .put("insane96mcp.nohunger.mixin.integration.autumnity.PancakeBlockMixin", () -> LoadingModList.get().getModFileById("autumnity") != null)
             .put("insane96mcp.nohunger.mixin.integration.farmersdelight.PieBlockMixin", () -> LoadingModList.get().getModFileById("farmersdelight") != null)
+            .put("insane96mcp.nohunger.mixin.integration.tconstruct.TastyModifierMixin", () -> LoadingModList.get().getModFileById("tconstruct") != null)
             .build();
     @Override
     public void onLoad(String mixinPackage) {

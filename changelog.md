@@ -1,6 +1,8 @@
 # Changelog
 
 ## Upcoming
+* Support for Tinkers' Construct
+  * Tasty modifier now heals 0.25 health per level (1/8 of heart)
 * Reduced Foul Taste bonus heal (+50% -> +20%)
 
 ## 1.0.2

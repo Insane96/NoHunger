@@ -98,6 +98,10 @@ public class NoHungerFeature extends Feature {
     public static Boolean buffCakes = true;
 
     @Config
+    @Label(name = "TConstruct.Tasty Health Regen", description = "How much health (each level) of the tasty modifier heals")
+    public static Double tconstruct$tastyHealthRegen = 0.25d;
+
+    @Config
     @Label(name = "Food tooltip", description = "(Client Only) If enabled, Foods will show \"Snack\" when the food instantly heals and \"Meal\" when the food heals over time. If advanced tooltips are enabled, the food will show how much it restores")
     public static Boolean foodTooltip = true;
 
