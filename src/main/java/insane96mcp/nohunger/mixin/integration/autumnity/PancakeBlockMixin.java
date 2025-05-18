@@ -2,7 +2,7 @@ package insane96mcp.nohunger.mixin.integration.autumnity;
 
 import com.teamabnormals.autumnity.common.block.PancakeBlock;
 import com.teamabnormals.autumnity.core.registry.AutumnityBlocks;
-import insane96mcp.nohunger.feature.NoHungerFeature;
+import insane96mcp.nohunger.NoHungerFeature;
 import insane96mcp.nohunger.integration.AutumnityIntegration;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;

@@ -4,6 +4,9 @@
     "compatibilityLevel": "JAVA_17",
     "refmap": "mixins.nohunger.refmap.json",
     "plugin": "insane96mcp.nohunger.mixin.plugin.ModLoadedPlugin",
+    "injectors": {
+        "defaultRequire": 1
+    },
     "mixins": [
         "FoodDataAccessor",
         "integration.autumnity.CookedTurkeyBlockMixin",

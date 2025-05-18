@@ -1,6 +1,6 @@
 package insane96mcp.nohunger.network.message;
 
-import insane96mcp.nohunger.feature.NoHungerFeature;
+import insane96mcp.nohunger.NoHungerFeature;
 import insane96mcp.nohunger.network.NetworkHelper;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;

@@ -1,4 +1,4 @@
-package insane96mcp.nohunger.feature;
+package insane96mcp.nohunger;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import insane96mcp.insanelib.InsaneLib;
@@ -11,7 +11,6 @@ import insane96mcp.insanelib.event.CakeEatEvent;
 import insane96mcp.insanelib.event.PlayerExhaustionEvent;
 import insane96mcp.insanelib.util.ClientUtils;
 import insane96mcp.insanelib.util.MCUtils;
-import insane96mcp.nohunger.NoHunger;
 import insane96mcp.nohunger.integration.AutumnityIntegration;
 import insane96mcp.nohunger.integration.FarmersDelightIntegration;
 import insane96mcp.nohunger.mixin.FoodDataAccessor;
@@ -102,8 +101,14 @@ public class NoHungerFeature extends Feature {
     public static Double tconstruct$tastyHealthRegen = 0.25d;
 
     @Config
-    @Label(name = "Food tooltip", description = "(Client Only) If enabled, Foods will show \"Snack\" when the food instantly heals and \"Meal\" when the food heals over time. If advanced tooltips are enabled, the food will show how much it restores")
+    @Label(name = "Food tooltip.Enabled", description = "(Client Only) If enabled, Foods will show \"Snack\" or \"Nosh\" when the food instantly heals and \"Meal\" or \"Feast\" when the food heals over time. If advanced tooltips are enabled, the food will show how much it restores")
     public static Boolean foodTooltip = true;
+    @Config
+    @Label(name = "Food tooltip.Nosh threshold", description = "Above how much health restored food tooltip will show Nosh instead of Snack")
+    public static Double foodTooltip$noshThreshold = 1d;
+    @Config
+    @Label(name = "Food tooltip.Feast threshold", description = "Above how much health restored food tooltip will show Feast instead of Meal")
+    public static Double foodTooltip$feastThreshold = 8d;
 
     @Config
     @Label(name = "Render armor at Hunger", description = "(Client Only) Armor is rendered in the place of Hunger bar")
@@ -422,7 +427,7 @@ public class NoHungerFeature extends Feature {
                         .append(" ")
                         .append(Component.translatable(HEALTH_LANG));
             }
-            else if (heal >= 1)
+            else if (heal >= foodTooltip$noshThreshold)
                 component = Component.translatable("nohunger.tooltip.nosh");
             else
                 component = Component.translatable("nohunger.tooltip.snack");
@@ -443,7 +448,7 @@ public class NoHungerFeature extends Feature {
             }
             else {
                 component = Component.translatable("nohunger.tooltip.meal");
-                if (heal > 8)
+                if (heal > foodTooltip$feastThreshold)
                     component = Component.translatable("nohunger.tooltip.feast");
             }
         }

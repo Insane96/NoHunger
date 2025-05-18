@@ -1,7 +1,7 @@
 package insane96mcp.nohunger.mixin.integration.farmersdelight;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import insane96mcp.nohunger.feature.NoHungerFeature;
+import insane96mcp.nohunger.NoHungerFeature;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;

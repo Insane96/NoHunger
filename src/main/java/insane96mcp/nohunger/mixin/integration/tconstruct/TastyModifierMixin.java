@@ -1,6 +1,6 @@
 package insane96mcp.nohunger.mixin.integration.tconstruct;
 
-import insane96mcp.nohunger.feature.NoHungerFeature;
+import insane96mcp.nohunger.NoHungerFeature;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
