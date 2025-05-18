@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.2
+* Crash fixes with Tinker and Farmer's Delight?
+
 ## 1.1.1
 * Added config options for the threshold of Nosh and Feast tooltips
 

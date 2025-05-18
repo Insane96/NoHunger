@@ -18,7 +18,7 @@ import vectorwing.farmersdelight.common.block.PieBlock;
 @Mixin(PieBlock.class)
 public class PieBlockMixin {
     @Inject(method = "consumeBite", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/food/FoodData;eat(Lnet/minecraft/world/item/Item;Lnet/minecraft/world/item/ItemStack;)V", shift = At.Shift.AFTER))
-    public void onConsumeBite(Level level, BlockPos pos, BlockState state, Player player, CallbackInfoReturnable<InteractionResult> cir, @Local FoodProperties foodProperties, @Local ItemStack sliceStack) {
+    public void onConsumeBite(Level level, BlockPos pos, BlockState state, Player player, CallbackInfoReturnable<InteractionResult> cir, @Local FoodProperties foodProperties, @Local(ordinal = 0) ItemStack sliceStack) {
         NoHungerFeature.healOnEat(player, sliceStack.getItem(), foodProperties);
     }
 }

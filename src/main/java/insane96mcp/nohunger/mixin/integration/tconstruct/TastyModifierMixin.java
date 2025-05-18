@@ -13,7 +13,7 @@ import slimeknights.tconstruct.tools.modifiers.traits.general.TastyModifier;
 @Mixin(TastyModifier.class)
 public class TastyModifierMixin {
 
-    @Inject(method = "eat", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/food/FoodData;eat(IF)V", shift = At.Shift.AFTER), remap = false)
+    @Inject(method = "eat", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/food/FoodData;eat(IF)V", shift = At.Shift.AFTER))
     public void onEat(IToolStackView tool, ModifierEntry modifier, LivingEntity entity, CallbackInfo ci) {
         entity.heal(NoHungerFeature.tconstruct$tastyHealthRegen.floatValue() * modifier.getLevel());
     }
