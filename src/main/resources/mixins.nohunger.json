@@ -13,6 +13,7 @@
         "integration.autumnity.PancakeBlockMixin",
         "integration.autumnity.TurkeyBlockMixin",
         "integration.farmersdelight.PieBlockMixin",
+        "integration.tconstruct.RestoreHungerFluidEffectMixin",
         "integration.tconstruct.TastyModifierMixin"
     ],
     "minVersion": "0.8",

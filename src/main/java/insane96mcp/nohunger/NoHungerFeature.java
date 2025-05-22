@@ -99,6 +99,9 @@ public class NoHungerFeature extends Feature {
     @Config
     @Label(name = "TConstruct.Tasty Health Regen", description = "How much health (each level) of the tasty modifier heals")
     public static Double tconstruct$tastyHealthRegen = 0.25d;
+    @Config
+    @Label(name = "TConstruct.Restore Hunger to Health Ratio", description = "How much health per hunger point is restored when drinking food (e.g. stews with sipping)")
+    public static Double tconstruct$restoreHungerToHealthRatio = 1d;
 
     @Config
     @Label(name = "Food tooltip.Enabled", description = "(Client Only) If enabled, Foods will show \"Snack\" or \"Nosh\" when the food instantly heals and \"Meal\" or \"Feast\" when the food heals over time. If advanced tooltips are enabled, the food will show how much it restores")

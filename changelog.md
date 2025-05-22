@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.3
+* TiConstruct hunger restoring fluids are now converted to health restoring fluids
+
 ## 1.1.2
 * Crash fixes with Tinker and Farmer's Delight?
 
