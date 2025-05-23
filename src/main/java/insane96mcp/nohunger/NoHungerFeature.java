@@ -366,7 +366,7 @@ public class NoHungerFeature extends Feature {
     @OnlyIn(Dist.CLIENT)
     @SubscribeEvent
     public static void registerGui(RegisterGuiOverlaysEvent event) {
-        event.registerAbove(VanillaGuiOverlay.PLAYER_HEALTH.id(), "ot_regen", (gui, guiGraphics, partialTicks, screenWidth, screenHeight) -> {
+        event.registerBelow(VanillaGuiOverlay.PLAYER_HEALTH.id(), "ot_regen", (gui, guiGraphics, partialTicks, screenWidth, screenHeight) -> {
             if (!Feature.isEnabled(NoHungerFeature.class)
                     || !gui.shouldDrawSurvivalElements())
                 return;
@@ -379,21 +379,27 @@ public class NoHungerFeature extends Feature {
             int right = screenWidth / 2 - 91;
             int health = Mth.ceil(player.getHealth());
             int healthLast = ((GuiAccessor)gui).getDisplayHealth();
+            float aRight = Math.min(player.getHealth() + 1f, player.getMaxHealth());
             AttributeInstance attrMaxHealth = player.getAttribute(Attributes.MAX_HEALTH);
             float healthMax = Math.max((float) attrMaxHealth.getValue(), Math.max(healthLast, health));
             int absorb = Mth.ceil(player.getAbsorptionAmount());
             int healthRows = Mth.ceil((healthMax + absorb) / 2.0F / 10.0F);
             int rowHeight = Math.max(10 - (healthRows - 2), 3);
-            int top = screenHeight - gui.leftHeight + 6;
+            int top = screenHeight - gui.leftHeight - 3;
             top += (healthRows * rowHeight);
             if (rowHeight != 10) top += 10 - rowHeight;
             float regenLeft = Math.min(20, getFoodRegenLeft(player));
             float regenStrength = getFoodRegenStrength(player) * 20 * 2;
             if (regenStrength == 0f)
                 return;
-            int width = Mth.ceil(regenLeft / 2f * 8);
+            int width = Mth.ceil(regenLeft / 2f * 8f);
+            float healthMissing = player.getMaxHealth() - player.getHealth();
+            if (healthMissing < regenLeft) {
+                aRight -= regenLeft - Math.max(1f, healthMissing);
+            }
+            right += (int) (aRight / 2f * 8f);
             ClientUtils.setRenderColor(1.2f - (regenStrength / 1.2f), 0.78f, 0.17f, 1f);
-            guiGraphics.blit(OT_REGEN_LOCATION, right, top, 0f, 0f, width, 3, 90, 3);
+            guiGraphics.blit(OT_REGEN_LOCATION, right, top, 90 - width, 0f, width, 3, 90, 3);
             ClientUtils.resetRenderColor();
         });
     }

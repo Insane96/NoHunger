@@ -1,5 +1,10 @@
 # Changelog
 
+## Upcoming
+* Changed how the over time heal is displayed
+  * Now shows under hearts
+  * Now is anchored to the right side of the health bar
+
 ## 1.1.3
 * TiConstruct hunger restoring fluids are now converted to health restoring fluids
 
