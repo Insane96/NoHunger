@@ -1,6 +1,6 @@
 # Changelog
 
-## Upcoming
+## 1.1.4
 * Changed how the over time heal is displayed
   * Now shows under hearts
   * Now is anchored to the right side of the health bar
