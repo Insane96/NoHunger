@@ -14,7 +14,6 @@ import insane96mcp.insanelib.util.MCUtils;
 import insane96mcp.nohunger.integration.AutumnityIntegration;
 import insane96mcp.nohunger.integration.FarmersDelightIntegration;
 import insane96mcp.nohunger.mixin.FoodDataAccessor;
-import insane96mcp.nohunger.mixin.client.GuiAccessor;
 import insane96mcp.nohunger.network.NetworkHandler;
 import insane96mcp.nohunger.network.message.FoodRegenSync;
 import insane96mcp.nohunger.network.message.NoHungerSync;
@@ -30,8 +29,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
@@ -377,25 +374,16 @@ public class NoHungerFeature extends Feature {
                 return;
 
             int right = screenWidth / 2 - 91;
-            int health = Mth.ceil(player.getHealth());
-            int healthLast = ((GuiAccessor)gui).getDisplayHealth();
             float aRight = Math.min(player.getHealth() + 1f, player.getMaxHealth());
-            AttributeInstance attrMaxHealth = player.getAttribute(Attributes.MAX_HEALTH);
-            float healthMax = Math.max((float) attrMaxHealth.getValue(), Math.max(healthLast, health));
-            int absorb = Mth.ceil(player.getAbsorptionAmount());
-            int healthRows = Mth.ceil((healthMax + absorb) / 2.0F / 10.0F);
-            int rowHeight = Math.max(10 - (healthRows - 2), 3);
-            int top = screenHeight - gui.leftHeight - 3;
-            top += (healthRows * rowHeight);
-            if (rowHeight != 10) top += 10 - rowHeight;
+            int top = screenHeight - gui.leftHeight - 3 + 10;
             float regenLeft = Math.min(20, getFoodRegenLeft(player));
             float regenStrength = getFoodRegenStrength(player) * 20 * 2;
             if (regenStrength == 0f)
                 return;
             int width = Mth.ceil(regenLeft / 2f * 8f);
             float healthMissing = player.getMaxHealth() - player.getHealth();
-            if (healthMissing < regenLeft) {
-                aRight -= regenLeft - Math.max(1f, healthMissing);
+            if (healthMissing < regenLeft || player.getHealth() + regenLeft >= 20) {
+                aRight = 21 - regenLeft;
             }
             right += (int) (aRight / 2f * 8f);
             ClientUtils.setRenderColor(1.2f - (regenStrength / 1.2f), 0.78f, 0.17f, 1f);
