@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.5
+* Fixed crash with Autumnity
+
 ## 1.1.4
 * Changed how the over time heal is displayed
   * Now shows under hearts

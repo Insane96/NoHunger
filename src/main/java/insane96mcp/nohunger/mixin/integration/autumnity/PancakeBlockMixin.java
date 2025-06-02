@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(PancakeBlock.class)
 public class PancakeBlockMixin {
-    @Inject(method = "eatCake", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/food/FoodData;eat(IF)V"), remap = false)
+    @Inject(method = "eatCake", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/food/FoodData;eat(IF)V"))
     public void onEat(Level worldIn, BlockPos pos, BlockState state, Player player, ItemStack itemstack, CallbackInfoReturnable<InteractionResult> cir) {
         NoHungerFeature.healOnEat(player, AutumnityBlocks.PANCAKE.get().asItem(), AutumnityIntegration.FOOD_PROPERTIES);
     }
