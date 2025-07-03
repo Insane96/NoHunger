@@ -3,7 +3,6 @@ package insane96mcp.nohunger;
 import com.mojang.blaze3d.systems.RenderSystem;
 import insane96mcp.insanelib.InsaneLib;
 import insane96mcp.insanelib.base.Feature;
-import insane96mcp.insanelib.base.Label;
 import insane96mcp.insanelib.base.LoadFeature;
 import insane96mcp.insanelib.base.Module;
 import insane96mcp.insanelib.base.config.Config;
@@ -11,6 +10,7 @@ import insane96mcp.insanelib.event.CakeEatEvent;
 import insane96mcp.insanelib.event.PlayerExhaustionEvent;
 import insane96mcp.insanelib.util.ClientUtils;
 import insane96mcp.insanelib.util.MCUtils;
+import insane96mcp.insanelib.util.ModNBTData;
 import insane96mcp.nohunger.integration.AutumnityIntegration;
 import insane96mcp.nohunger.integration.FarmersDelightIntegration;
 import insane96mcp.nohunger.mixin.FoodDataAccessor;
@@ -50,72 +50,57 @@ import net.minecraftforge.network.NetworkDirection;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
 
-@Label(name = "No Hunger", description = "Remove hunger and get back to the Beta 1.7.3 days")
-@LoadFeature(module = NoHunger.RESOURCE_PREFIX + "base", canBeDisabled = false)
+@LoadFeature(module = NoHunger.MOD_ID + ":base", canBeDisabled = false)
 public class NoHungerFeature extends Feature {
-
-    private static final String FOOD_REGEN_LEFT = NoHunger.RESOURCE_PREFIX + "food_regen_left";
-    private static final String FOOD_REGEN_STRENGTH = NoHunger.RESOURCE_PREFIX + "food_regen_strength";
     private static final int FOOD_REGEN_TICK_RATE = 10;
 
-    private static final String HEALTH_LANG = NoHunger.MOD_ID + ".tooltip.health";
-    private static final String MISSING_HEALTH_LANG = NoHunger.MOD_ID + ".tooltip.missing_health";
-    private static final String SEC_LANG = NoHunger.MOD_ID + ".tooltip.sec";
+    private static ResourceLocation FOOD_REGEN_LEFT;
+    private static ResourceLocation FOOD_REGEN_STRENGTH;
 
-    @Config(min = 0d)
-    @Label(name = "Food Heal.Over Time", description = "The formula to calculate the health regenerated overtime when eating food. Leave empty to disable. Variables as hunger, saturation_modifier, effectiveness as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
-    public static String healOverTime = "(hunger^1.37) * 0.5";
-    @Config
-    @Label(name = "Food Heal.Over time Strength", description = "How much HP does food regen each second? Variables as hunger, saturation_modifier, effectiveness as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html")
-    public static String healOverTimeStrength = "MAX(0.15, 5 * saturation_modifier * (1 / hunger))";
-    @Config
-    @Label(name = "Food Heal.Over time Decay", description = "Over Time Heal will be consumed at the rate of exhaustion multiplied by this")
-    public static Double healOverTimeDecay = 0.02d;
-    @Config(min = 0d)
-    @Label(name = "Food Heal.Instant Heal", description = "The formula to calculate the health restored instantly when eating. Leave empty to disable. To have the same effect as pre-Beta 1.8 food just use \"hunger\". Variables as hunger, saturation_modifier, effectiveness as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
-    public static String instantHeal = "0.5 * ROUND((hunger^1.3) * 0.35, 1) / 0.5";
-    @Config(min = 0d)
-    @Label(name = "Food Heal.Saturation threshold", description = "Foods below this saturation will instantly heal, foods equal or above this threshold will have overtime heal.")
-    public static Double instantHealSaturationThreshold = 4d;
-    /*@Config
-    @Label(name = "Raw food.Heal Multiplier", description = "If true, raw food will heal by this percentage (this is applied after 'Food Heal.Health Multiplier'). Raw food is defined in the iguanatweaksreborn:raw_food tag")
-    public static Double rawFoodHealPercentage = 1d;*/
+    private static final String HEALTH_LANG = NoHunger.lang("tooltip.health");
+    private static final String MISSING_HEALTH_LANG = NoHunger.lang("tooltip.missing_health");
+    private static final String SEC_LANG = NoHunger.lang("tooltip.sec");
 
-    @Config
-    @Label(name = "Convert Hunger to Weakness", description = "If true, Hunger effect is replaced by Weakness")
+    @Config(min = 0d, description = "The formula to calculate the health regenerated overtime when eating food. Leave empty to disable. Variables as hunger, saturation_modifier, effectiveness as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
+    public static String foodHeal$overTime = "hunger * 1.2";
+    @Config(description = "How much HP does food regen each second? Variables as hunger, saturation_modifier, effectiveness as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html")
+    public static String foodHeal$overTimeStrength = "MAX(0.15, 5 * saturation_modifier * (1 / hunger))";
+    @Config(description = "Over Time Heal will be consumed at the rate of exhaustion multiplied by this")
+    public static Double foodHeal$overTimeDecay = 0.02d;
+    @Config(min = 0d, description = "The formula to calculate the health restored instantly when eating. Leave empty to disable. To have the same effect as pre-Beta 1.8 food just use \"hunger\". Variables as hunger, saturation_modifier, effectiveness as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
+    public static String foodHeal$instantHeal = "0.5 * ROUND((hunger^1.3) * 0.35, 1) / 0.5";
+    @Config(min = 0d, description = "Foods below this saturation will instantly heal, foods equal or above this threshold will have overtime heal.")
+    public static Double foodHeal$saturationThreshold = 4d;
+
+    @Config(description = "If true, Hunger effect is replaced by Weakness")
     public static Boolean convertHungerToWeakness = true;
 
-    @Config
-    @Label(name = "Convert Saturation to Haste", description = "If true, Saturation effect is replaced by Haste")
+    @Config(description = "If true, Saturation effect is replaced by Haste")
     public static Boolean convertSaturationToHaste = true;
 
-    @Config
-    @Label(name = "Buff cakes", description = "Make cakes restore 30% missing health, min 1 health")
+    @Config(description = "Make cakes restore 30% missing health, min 1 health")
     public static Boolean buffCakes = true;
 
-    @Config
-    @Label(name = "TConstruct.Tasty Health Regen", description = "How much health (each level) of the tasty modifier heals")
+    @Config(description = "How much health (each level) of the tasty modifier heals")
     public static Double tconstruct$tastyHealthRegen = 0.25d;
-    @Config
-    @Label(name = "TConstruct.Restore Hunger to Health Ratio", description = "How much health per hunger point is restored when drinking food (e.g. stews with sipping)")
+    @Config(description = "How much health per hunger point is restored when drinking food (e.g. stews with sipping)")
     public static Double tconstruct$restoreHungerToHealthRatio = 1d;
 
-    @Config
-    @Label(name = "Food tooltip.Enabled", description = "(Client Only) If enabled, Foods will show \"Snack\" or \"Nosh\" when the food instantly heals and \"Meal\" or \"Feast\" when the food heals over time. If advanced tooltips are enabled, the food will show how much it restores")
-    public static Boolean foodTooltip = true;
-    @Config
-    @Label(name = "Food tooltip.Nosh threshold", description = "Above how much health restored food tooltip will show Nosh instead of Snack")
+    @Config(description = "(Client Only) If enabled, Foods will show \"Snack\" or \"Nosh\" when the food instantly heals and \"Meal\" or \"Feast\" when the food heals over time. If advanced tooltips are enabled, the food will show how much it restores")
+    public static Boolean foodTooltip$enabled = true;
+    @Config(description = "Above how much health restored food tooltip will show Nosh instead of Snack")
     public static Double foodTooltip$noshThreshold = 1d;
-    @Config
-    @Label(name = "Food tooltip.Feast threshold", description = "Above how much health restored food tooltip will show Feast instead of Meal")
-    public static Double foodTooltip$feastThreshold = 8d;
+    @Config(description = "Above how much health restored food tooltip will show Feast instead of Meal")
+    public static Double foodTooltip$feastThreshold = 12d;
 
-    @Config
-    @Label(name = "Render armor at Hunger", description = "(Client Only) Armor is rendered in the place of Hunger bar")
+    @Config(description = "(Client Only) Armor is rendered in the place of Hunger bar")
     public static Boolean renderArmorAtHunger = true;
 
-    public NoHungerFeature(Module module, boolean enabledByDefault, boolean canBeDisabled) {
-        super(module, enabledByDefault, canBeDisabled);
+    public void init(Module module, boolean enabledByDefault, boolean canBeDisabled) {
+        super.init(module, enabledByDefault, canBeDisabled);
+
+        FOOD_REGEN_LEFT = this.createDataKey("food_regen_left");
+        FOOD_REGEN_STRENGTH = this.createDataKey("food_regen_strength");
     }
 
     @SubscribeEvent
@@ -174,7 +159,7 @@ public class NoHungerFeature extends Feature {
     public void onFoodExhaustion(PlayerExhaustionEvent event) {
         if (!isEnabled(NoHungerFeature.class)
                 || event.getEntity().level().isClientSide
-                || healOverTimeDecay == 0)
+                || foodHeal$overTimeDecay == 0)
             return;
 
         ServerPlayer player = (ServerPlayer) event.getEntity();
@@ -183,7 +168,7 @@ public class NoHungerFeature extends Feature {
         if (regenLeft <= 0)
             return;
         float regenStrength = getFoodRegenStrength(player);
-        regenLeft -= event.getAmount() * healOverTimeDecay.floatValue();
+        regenLeft -= event.getAmount() * foodHeal$overTimeDecay.floatValue();
         setHealOverTime(player, regenLeft, regenStrength);
     }
 
@@ -194,7 +179,7 @@ public class NoHungerFeature extends Feature {
     public static void healOnEat(Player player, @Nullable Item item, FoodProperties foodProperties) {
         //TODO Raw Food
         //boolean isRawFood = item != null && FoodDrinks.isRawFood(item);
-        if (MCUtils.getFoodSaturationRestored(foodProperties) >= instantHealSaturationThreshold)
+        if (MCUtils.getFoodSaturationRestored(foodProperties) >= foodHeal$saturationThreshold)
             //TODO Raw Food
             onEatHealOverTime(player, item, foodProperties, false);
         else
@@ -209,7 +194,7 @@ public class NoHungerFeature extends Feature {
         if (!doesHealOverTime())
             return;
 
-        float heal = Utils.computeFoodFormula(foodProperties, healOverTime);
+        float heal = Utils.computeFoodFormula(foodProperties, foodHeal$overTime);
         if (heal <= 0f)
             return;
         if (buffCakes && item == null)
@@ -218,12 +203,12 @@ public class NoHungerFeature extends Feature {
             heal *= rawFoodHealPercentage;*/
         heal = applyModifiers(player, heal);
 
-        float strength = Utils.computeFoodFormula(foodProperties, healOverTimeStrength) / 20f;
+        float strength = Utils.computeFoodFormula(foodProperties, foodHeal$overTimeStrength) / 20f;
         setHealOverTime(player, heal, strength);
     }
 
     public static boolean doesHealOverTime() {
-        return !StringUtils.isBlank(healOverTime) && !StringUtils.isBlank(healOverTimeStrength);
+        return !StringUtils.isBlank(foodHeal$overTime) && !StringUtils.isBlank(foodHeal$overTimeStrength);
     }
 
     private static void onEatInstantHeal(Player player, @Nullable Item item, FoodProperties foodProperties, boolean isRawFood) {
@@ -238,23 +223,23 @@ public class NoHungerFeature extends Feature {
     }
 
     public static float getInstantHealAmount(FoodProperties foodProperties, boolean isRawFood) {
-        float heal = Utils.computeFoodFormula(foodProperties, instantHeal);
+        float heal = Utils.computeFoodFormula(foodProperties, foodHeal$instantHeal);
         /*if (isRawFood && rawFoodHealPercentage != 1d)
             heal *= rawFoodHealPercentage;*/
         return heal;
     }
 
     public static boolean doesHealInstantly() {
-        return !StringUtils.isBlank(instantHeal);
+        return !StringUtils.isBlank(foodHeal$instantHeal);
     }
 
     private static float getFoodRegenLeft(Player player) {
-        return player.getPersistentData().getFloat(FOOD_REGEN_LEFT);
+        return ModNBTData.get(player, FOOD_REGEN_LEFT, Float.class);
     }
 
     public static void setHealOverTime(Player player, float amount, float strength) {
-        player.getPersistentData().putFloat(FOOD_REGEN_LEFT, amount);
-        player.getPersistentData().putFloat(FOOD_REGEN_STRENGTH, strength);
+        ModNBTData.put(player, FOOD_REGEN_LEFT, amount);
+        ModNBTData.put(player, FOOD_REGEN_STRENGTH, strength);
         if (player instanceof ServerPlayer serverPlayer) {
             Object msg = new FoodRegenSync(amount, strength);
             NetworkHandler.CHANNEL.sendTo(msg, serverPlayer.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
@@ -281,7 +266,7 @@ public class NoHungerFeature extends Feature {
     }
 
     private static float getFoodRegenStrength(Player player) {
-        return player.getPersistentData().getFloat(FOOD_REGEN_STRENGTH);
+        return ModNBTData.get(player, FOOD_REGEN_STRENGTH, Float.class);
     }
 
     private static float applyModifiers(Player player, float amount) {
@@ -334,7 +319,7 @@ public class NoHungerFeature extends Feature {
     protected static void renderArmor(GuiGraphics guiGraphics, int width, int height) {
         Minecraft mc = Minecraft.getInstance();
         ForgeGui gui = (ForgeGui) mc.gui;
-        mc.getProfiler().push(NoHunger.RESOURCE_PREFIX + "armor");
+        mc.getProfiler().push(NoHunger.MOD_ID + ":armor");
 
         RenderSystem.enableBlend();
         int left = width / 2 + 82;
@@ -404,7 +389,7 @@ public class NoHungerFeature extends Feature {
         if (player == null)
             return;
 
-        if (!foodTooltip)
+        if (!foodTooltip$enabled)
             return;
 
         FoodProperties food = event.getItemStack().getItem().getFoodProperties(event.getItemStack(), event.getEntity());
@@ -413,7 +398,7 @@ public class NoHungerFeature extends Feature {
         //ChatFormatting color = FoodDrinks.isRawFood(event.getItemStack().getItem()) ? ChatFormatting.DARK_RED : ChatFormatting.GRAY;
         ChatFormatting color = ChatFormatting.GRAY;
         MutableComponent component = null;
-        if (MCUtils.getFoodSaturationRestored(food) < instantHealSaturationThreshold && doesHealInstantly()) {
+        if (MCUtils.getFoodSaturationRestored(food) < foodHeal$saturationThreshold && doesHealInstantly()) {
             //TODO Raw food
             //boolean isRawFood = FoodDrinks.isRawFood(event.getItemStack().getItem());
             //TODO Raw food
@@ -429,12 +414,12 @@ public class NoHungerFeature extends Feature {
             else
                 component = Component.translatable("nohunger.tooltip.snack");
         }
-        if (MCUtils.getFoodSaturationRestored(food) >= instantHealSaturationThreshold && doesHealOverTime()) {
+        if (MCUtils.getFoodSaturationRestored(food) >= foodHeal$saturationThreshold && doesHealOverTime()) {
             //noinspection ConstantConditions
-            float heal = Utils.computeFoodFormula(food, healOverTime);
+            float heal = Utils.computeFoodFormula(food, foodHeal$overTime);
             if (mc.options.advancedItemTooltips) {
                 //Half heart per second by default
-                float strength = Utils.computeFoodFormula(food, healOverTimeStrength);
+                float strength = Utils.computeFoodFormula(food, foodHeal$overTimeStrength);
                 component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
                         .append(" ")
                         .append(Component.translatable(HEALTH_LANG))

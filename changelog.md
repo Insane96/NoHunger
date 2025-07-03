@@ -1,5 +1,9 @@
 # Changelog
 
+## Upcoming
+* Updated to latest InsaneLib
+  * Some config options might have been reset
+
 ## 1.1.5
 * Fixed crash with Autumnity
 
