@@ -3,6 +3,8 @@
 ## Upcoming
 * Updated to latest InsaneLib
   * Some config options might have been reset
+* Simplified over time healing formula
+* Added a config option to allow always eat even at full health
 
 ## 1.1.5
 * Fixed crash with Autumnity

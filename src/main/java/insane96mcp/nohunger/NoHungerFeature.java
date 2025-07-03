@@ -81,6 +81,9 @@ public class NoHungerFeature extends Feature {
     @Config(description = "Make cakes restore 30% missing health, min 1 health")
     public static Boolean buffCakes = true;
 
+    @Config(description = "If true, you'll always be able to eat even if you're at full health")
+    public static Boolean alwaysEat = false;
+
     @Config(description = "How much health (each level) of the tasty modifier heals")
     public static Double tconstruct$tastyHealthRegen = 0.25d;
     @Config(description = "How much health per hunger point is restored when drinking food (e.g. stews with sipping)")
@@ -110,7 +113,7 @@ public class NoHungerFeature extends Feature {
                 || event.phase.equals(TickEvent.Phase.START))
             return;
 
-        if (isPlayerHurt(event.player))
+        if (isPlayerHurt(event.player) || alwaysEat)
             ((FoodDataAccessor)event.player.getFoodData()).setFoodLevel(15);
         else
             ((FoodDataAccessor)event.player.getFoodData()).setFoodLevel(20);
