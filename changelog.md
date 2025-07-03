@@ -1,6 +1,6 @@
 # Changelog
 
-## Upcoming
+## 1.2.0
 * Updated to latest InsaneLib
   * Some config options might have been reset
 * Simplified over time healing formula
