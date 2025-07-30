@@ -52,7 +52,7 @@ import org.jetbrains.annotations.Nullable;
 
 @LoadFeature(module = NoHunger.MOD_ID + ":base", canBeDisabled = false)
 public class NoHungerFeature extends Feature {
-    private static final int FOOD_REGEN_TICK_RATE = 10;
+    private static final int FOOD_REGEN_TICK_RATE = 5;
 
     private static ResourceLocation FOOD_REGEN_LEFT;
     private static ResourceLocation FOOD_REGEN_STRENGTH;
@@ -361,19 +361,19 @@ public class NoHungerFeature extends Feature {
             if (player == null)
                 return;
 
-            int right = screenWidth / 2 - 91;
-            float aRight = Math.min(player.getHealth() + 1f, player.getMaxHealth());
+            int right = screenWidth / 2 - 90;
+            float aRight = Mth.ceil(player.getHealth());
             int top = screenHeight - gui.leftHeight - 3 + 10;
-            float regenLeft = Math.min(20, getFoodRegenLeft(player));
-            float regenStrength = getFoodRegenStrength(player) * 20 * 2;
+            float regenLeft = Math.round(Math.min(20, getFoodRegenLeft(player)) + (player.getHealth() - (int) player.getHealth()));
+            float regenStrength = getFoodRegenStrength(player) * 20 * 1.5f;
             if (regenStrength == 0f)
                 return;
-            int width = Mth.ceil(regenLeft / 2f * 8f);
+            int width = (int) (regenLeft / 2f * 8f);
             float healthMissing = player.getMaxHealth() - player.getHealth();
-            if (healthMissing < regenLeft || player.getHealth() + regenLeft >= 20) {
+            if (healthMissing < regenLeft || player.getHealth() + regenLeft >= 20)
                 aRight = 21 - regenLeft;
-            }
             right += (int) (aRight / 2f * 8f);
+            player.displayClientMessage(Component.literal("Health: " + player.getHealth() + " Right: " + right + " Width: " + width + " regenLeft: " + regenLeft), true);
             ClientUtils.setRenderColor(1.2f - (regenStrength / 1.2f), 0.78f, 0.17f, 1f);
             guiGraphics.blit(OT_REGEN_LOCATION, right, top, 90 - width, 0f, width, 3, 90, 3);
             ClientUtils.resetRenderColor();

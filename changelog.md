@@ -1,5 +1,10 @@
 # Changelog
 
+## Upcoming
+* Enhanced the display of over-time healing
+  * Now shows every half hearth like health
+  * Bar is now more towards yellow and red when lower over-time healing strength
+
 ## 1.2.0
 * Updated to latest InsaneLib
   * Some config options might have been reset
