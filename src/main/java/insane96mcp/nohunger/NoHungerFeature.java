@@ -317,7 +317,7 @@ public class NoHungerFeature extends Feature {
         });
     }
 
-    protected static final ResourceLocation GUI_ICONS_LOCATION = new ResourceLocation("textures/gui/icons.png");
+    protected static final ResourceLocation GUI_ICONS_LOCATION = ResourceLocation.parse("textures/gui/icons.png");
     @OnlyIn(Dist.CLIENT)
     protected static void renderArmor(GuiGraphics guiGraphics, int width, int height) {
         Minecraft mc = Minecraft.getInstance();
@@ -346,7 +346,7 @@ public class NoHungerFeature extends Feature {
         mc.getProfiler().pop();
     }
 
-    protected static final ResourceLocation OT_REGEN_LOCATION = new ResourceLocation(NoHunger.MOD_ID, "textures/gui/ot_regen.png");
+    protected static final ResourceLocation OT_REGEN_LOCATION = NoHunger.location("textures/gui/ot_regen.png");
 
     @OnlyIn(Dist.CLIENT)
     @SubscribeEvent
