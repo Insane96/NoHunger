@@ -4,7 +4,7 @@
 * Enhanced the display of over-time healing
   * Now shows every half hearth like health
   * Bar is now more towards yellow and red when lower over-time healing strength
-* Added integration for Atmospheric Yukka Gateau
+* Added integration for Atmospheric Yukka Gateau and Persistence effect is replaced with speed
 
 ## 1.2.0
 * Updated to latest InsaneLib

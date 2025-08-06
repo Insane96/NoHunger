@@ -11,6 +11,7 @@ import insane96mcp.insanelib.event.PlayerExhaustionEvent;
 import insane96mcp.insanelib.util.ClientUtils;
 import insane96mcp.insanelib.util.MCUtils;
 import insane96mcp.insanelib.util.ModNBTData;
+import insane96mcp.nohunger.integration.AtmosphericIntegration;
 import insane96mcp.nohunger.integration.AutumnityIntegration;
 import insane96mcp.nohunger.integration.FarmersDelightIntegration;
 import insane96mcp.nohunger.mixin.FoodDataAccessor;
@@ -78,6 +79,9 @@ public class NoHungerFeature extends Feature {
     @Config(description = "If true, Saturation effect is replaced by Haste")
     public static Boolean convertSaturationToHaste = true;
 
+    @Config(description = "If true, Persistance effect from Atmospheric is replaced by Speed")
+    public static Boolean convertPersistenceToSpeed = true;
+
     @Config(description = "Make cakes restore 30% missing health, min 1 health")
     public static Boolean buffCakes = true;
 
@@ -129,6 +133,9 @@ public class NoHungerFeature extends Feature {
             //noinspection ConstantConditions; Checking with hasEffect
             event.player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, (effect.getDuration() + 1) * 20, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()));
             event.player.removeEffect(MobEffects.SATURATION);
+        }
+        if (ModList.get().isLoaded("atmospheric") && convertPersistenceToSpeed) {
+            AtmosphericIntegration.tryReplacePersistence(event.player);
         }
 
         if (event.player.tickCount % FOOD_REGEN_TICK_RATE == 0 && getFoodRegenLeft(event.player) > 0f)
