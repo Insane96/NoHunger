@@ -9,6 +9,7 @@
     },
     "mixins": [
         "FoodDataAccessor",
+        "integration.atmospheric.YuccaGateauBlockMixin",
         "integration.autumnity.CookedTurkeyBlockMixin",
         "integration.autumnity.PancakeBlockMixin",
         "integration.autumnity.TurkeyBlockMixin",
