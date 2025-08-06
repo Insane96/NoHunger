@@ -18,6 +18,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class YuccaGateauBlockMixin {
     @Inject(method = "eatCake", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/food/FoodData;eat(IF)V"))
     public void onEat(LevelAccessor worldIn, BlockPos pos, BlockState state, Player player, CallbackInfoReturnable<InteractionResult> cir) {
+        if (worldIn.isClientSide())
+            return;
         NoHungerFeature.healOnEat(player, AtmosphericBlocks.YUCCA_GATEAU.get().asItem(), AtmosphericIntegration.YUCCA_GATEAU_FOOD_PROPERTIES);
     }
 }
