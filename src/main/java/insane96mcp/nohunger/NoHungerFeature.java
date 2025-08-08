@@ -47,6 +47,7 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.network.NetworkDirection;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
@@ -380,7 +381,8 @@ public class NoHungerFeature extends Feature {
             if (healthMissing < regenLeft || player.getHealth() + regenLeft >= 20)
                 aRight = 21 - regenLeft;
             right += (int) (aRight / 2f * 8f);
-            player.displayClientMessage(Component.literal("Health: " + player.getHealth() + " Right: " + right + " Width: " + width + " regenLeft: " + regenLeft), true);
+            if (!FMLLoader.isProduction())
+                player.displayClientMessage(Component.literal("Health: " + player.getHealth() + " Right: " + right + " Width: " + width + " regenLeft: " + regenLeft), true);
             ClientUtils.setRenderColor(1.2f - (regenStrength / 1.2f), 0.78f, 0.17f, 1f);
             guiGraphics.blit(OT_REGEN_LOCATION, right, top, 90 - width, 0f, width, 3, 90, 3);
             ClientUtils.resetRenderColor();

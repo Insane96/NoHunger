@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.2
+* Fixed the action bar debug infos
+
 ## 1.2.1
 * Enhanced the display of over-time healing
   * Now shows every half hearth like health
