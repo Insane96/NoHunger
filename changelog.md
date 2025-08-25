@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.3
+* Fixed regen bar staying there even if stopped healing
+
 ## 1.2.2
 * Fixed the action bar debug infos
 

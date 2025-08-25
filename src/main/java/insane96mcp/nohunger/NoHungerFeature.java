@@ -366,7 +366,8 @@ public class NoHungerFeature extends Feature {
 
             Minecraft mc = Minecraft.getInstance();
             Player player = mc.player;
-            if (player == null)
+            if (player == null
+                    || getFoodRegenLeft(player) <= 0)
                 return;
 
             int right = screenWidth / 2 - 90;
