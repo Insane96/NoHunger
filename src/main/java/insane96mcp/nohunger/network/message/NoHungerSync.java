@@ -1,37 +1,35 @@
 package insane96mcp.nohunger.network.message;
 
-import insane96mcp.insanelib.base.Module;
+import insane96mcp.insanelib.core.feature.Module;
+import insane96mcp.nohunger.NoHunger;
 import insane96mcp.nohunger.NoHungerFeature;
-import insane96mcp.nohunger.network.NetworkHandler;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record NoHungerSync(boolean noHunger) implements CustomPacketPayload {
 
-public class NoHungerSync {
-    final boolean noHunger;
+    public static final Type<NoHungerSync> TYPE = new Type<>(NoHunger.location("no_hunger_sync"));
 
-    public NoHungerSync(boolean noHunger) {
-        this.noHunger = noHunger;
+    public static final StreamCodec<FriendlyByteBuf, NoHungerSync> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.BOOL, NoHungerSync::noHunger,
+            NoHungerSync::new
+    );
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 
-    public static void encode(NoHungerSync pkt, FriendlyByteBuf buf) {
-        buf.writeBoolean(pkt.noHunger);
-    }
-
-    public static NoHungerSync decode(FriendlyByteBuf buf) {
-        return new NoHungerSync(buf.readBoolean());
-    }
-
-    public static void handle(final NoHungerSync message, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> Module.getFeature(NoHungerFeature.class).setEnabledConfig(message.noHunger));
-        ctx.get().setPacketHandled(true);
+    public static void handle(NoHungerSync payload, IPayloadContext context) {
+        context.enqueueWork(() -> Module.getFeature(NoHungerFeature.class).setEnabledConfig(payload.noHunger()));
     }
 
     public static void sync(boolean noHunger, ServerPlayer player) {
-        Object msg = new NoHungerSync(noHunger);
-        NetworkHandler.CHANNEL.sendTo(msg, player.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
+        PacketDistributor.sendToPlayer(player, new NoHungerSync(noHunger));
     }
 }

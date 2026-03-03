@@ -1,67 +1,39 @@
 package insane96mcp.nohunger;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-import insane96mcp.insanelib.InsaneLib;
-import insane96mcp.insanelib.base.Feature;
-import insane96mcp.insanelib.base.LoadFeature;
-import insane96mcp.insanelib.base.Module;
-import insane96mcp.insanelib.base.config.Config;
+import insane96mcp.insanelib.core.ModNBTData;
+import insane96mcp.insanelib.core.feature.Feature;
+import insane96mcp.insanelib.core.feature.LoadFeature;
+import insane96mcp.insanelib.core.feature.Module;
+import insane96mcp.insanelib.core.feature.config.Config;
 import insane96mcp.insanelib.event.CakeEatEvent;
 import insane96mcp.insanelib.event.PlayerExhaustionEvent;
-import insane96mcp.insanelib.util.ClientUtils;
 import insane96mcp.insanelib.util.MCUtils;
-import insane96mcp.insanelib.util.ModNBTData;
-import insane96mcp.nohunger.integration.AtmosphericIntegration;
-import insane96mcp.nohunger.integration.AutumnityIntegration;
-import insane96mcp.nohunger.integration.FarmersDelightIntegration;
 import insane96mcp.nohunger.mixin.FoodDataAccessor;
-import insane96mcp.nohunger.network.NetworkHandler;
 import insane96mcp.nohunger.network.message.FoodRegenSync;
 import insane96mcp.nohunger.network.message.NoHungerSync;
-import insane96mcp.nohunger.utils.Utils;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.client.gui.overlay.ForgeGui;
-import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
-import net.minecraftforge.event.entity.player.ItemTooltipEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.loading.FMLLoader;
-import net.minecraftforge.network.NetworkDirection;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.Nullable;
 
-@LoadFeature(module = NoHunger.MOD_ID + ":base", canBeDisabled = false)
+import javax.annotation.Nullable;
+
+@LoadFeature(canBeDisabled = false)
 public class NoHungerFeature extends Feature {
     private static final int FOOD_REGEN_TICK_RATE = 5;
 
     private static ResourceLocation FOOD_REGEN_LEFT;
     private static ResourceLocation FOOD_REGEN_STRENGTH;
-
-    private static final String HEALTH_LANG = NoHunger.lang("tooltip.health");
-    private static final String MISSING_HEALTH_LANG = NoHunger.lang("tooltip.missing_health");
-    private static final String SEC_LANG = NoHunger.lang("tooltip.sec");
 
     @Config(min = 0d, description = "The formula to calculate the health regenerated overtime when eating food. Leave empty to disable. Variables as hunger, saturation_modifier, effectiveness as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
     public static String foodHeal$overTime = "hunger * 1.2";
@@ -89,10 +61,10 @@ public class NoHungerFeature extends Feature {
     @Config(description = "If true, you'll always be able to eat even if you're at full health")
     public static Boolean alwaysEat = false;
 
-    @Config(description = "How much health (each level) of the tasty modifier heals")
-    public static Double tconstruct$tastyHealthRegen = 0.25d;
-    @Config(description = "How much health per hunger point is restored when drinking food (e.g. stews with sipping)")
-    public static Double tconstruct$restoreHungerToHealthRatio = 1d;
+    //@Config(description = "How much health (each level) of the tasty modifier heals")
+    //public static Double tconstruct$tastyHealthRegen = 0.25d;
+    //@Config(description = "How much health per hunger point is restored when drinking food (e.g. stews with sipping)")
+    //public static Double tconstruct$restoreHungerToHealthRatio = 1d;
 
     @Config(description = "(Client Only) If enabled, Foods will show \"Snack\" or \"Nosh\" when the food instantly heals and \"Meal\" or \"Feast\" when the food heals over time. If advanced tooltips are enabled, the food will show how much it restores")
     public static Boolean foodTooltip$enabled = true;
@@ -112,41 +84,41 @@ public class NoHungerFeature extends Feature {
     }
 
     @SubscribeEvent
-    public void onPlayerTick(TickEvent.PlayerTickEvent event) {
+    public void onPlayerTick(PlayerTickEvent.Post event) {
+        Player player = event.getEntity();
         if (!this.isEnabled()
-                || event.player.level().isClientSide
-                || event.phase.equals(TickEvent.Phase.START))
+                || player.level().isClientSide)
             return;
 
-        if (isPlayerHurt(event.player) || alwaysEat)
-            ((FoodDataAccessor)event.player.getFoodData()).setFoodLevel(15);
+        if (isPlayerHurt(player) || alwaysEat)
+            ((FoodDataAccessor) player.getFoodData()).setFoodLevel(15);
         else
-            ((FoodDataAccessor)event.player.getFoodData()).setFoodLevel(20);
+            ((FoodDataAccessor) player.getFoodData()).setFoodLevel(20);
 
-        if (event.player.hasEffect(MobEffects.HUNGER) && convertHungerToWeakness) {
-            MobEffectInstance effect = event.player.getEffect(MobEffects.HUNGER);
+        if (player.hasEffect(MobEffects.HUNGER) && convertHungerToWeakness) {
+            MobEffectInstance effect = player.getEffect(MobEffects.HUNGER);
             //noinspection ConstantConditions; Checking with hasEffect
-            event.player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, effect.getDuration() + 1, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()));
-            event.player.removeEffect(MobEffects.HUNGER);
+            player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, effect.getDuration() + 1, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()));
+            player.removeEffect(MobEffects.HUNGER);
         }
-        if (event.player.hasEffect(MobEffects.SATURATION) && convertSaturationToHaste) {
-            MobEffectInstance effect = event.player.getEffect(MobEffects.SATURATION);
+        if (player.hasEffect(MobEffects.SATURATION) && convertSaturationToHaste) {
+            MobEffectInstance effect = player.getEffect(MobEffects.SATURATION);
             //noinspection ConstantConditions; Checking with hasEffect
-            event.player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, (effect.getDuration() + 1) * 20, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()));
-            event.player.removeEffect(MobEffects.SATURATION);
+            player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, (effect.getDuration() + 1) * 20, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()));
+            player.removeEffect(MobEffects.SATURATION);
         }
-        if (ModList.get().isLoaded("atmospheric") && convertPersistenceToSpeed) {
-            AtmosphericIntegration.tryReplacePersistence(event.player);
-        }
+        //if (ModList.get().isLoaded("atmospheric") && convertPersistenceToSpeed) {
+        //    AtmosphericIntegration.tryReplacePersistence(player);
+        //}
 
-        if (event.player.tickCount % FOOD_REGEN_TICK_RATE == 0 && getFoodRegenLeft(event.player) > 0f)
-            consumeAndHealFromFoodRegen(event.player);
+        if (player.tickCount % FOOD_REGEN_TICK_RATE == 0 && getFoodRegenLeft(player) > 0f)
+            consumeAndHealFromFoodRegen(player);
     }
 
     @SubscribeEvent
     public void onPlayerEat(LivingEntityUseItemEvent.Finish event) {
         if (!this.isEnabled()
-                || event.getItem().getItem().getFoodProperties() == null
+                || event.getItem().getItem().getFoodProperties(event.getItem(), event.getEntity()) == null
                 || !(event.getEntity() instanceof Player player)
                 || event.getEntity().level().isClientSide)
             return;
@@ -155,7 +127,7 @@ public class NoHungerFeature extends Feature {
         healOnEat(player, item, item.getFoodProperties(event.getItem(), player));
     }
 
-    private static final FoodProperties CAKE_FOOD_PROPERTIES = new FoodProperties.Builder().nutrition(2).saturationMod(0.8f).build();
+    private static final FoodProperties CAKE_FOOD_PROPERTIES = new FoodProperties.Builder().nutrition(2).saturationModifier(0.8f).build();
 
     @SubscribeEvent
     public void onCakeEat(CakeEatEvent event) {
@@ -190,7 +162,7 @@ public class NoHungerFeature extends Feature {
     public static void healOnEat(Player player, @Nullable Item item, FoodProperties foodProperties) {
         //TODO Raw Food
         //boolean isRawFood = item != null && FoodDrinks.isRawFood(item);
-        if (MCUtils.getFoodSaturationRestored(foodProperties) >= foodHeal$saturationThreshold)
+        if (foodProperties.saturation() >= foodHeal$saturationThreshold)
             //TODO Raw Food
             onEatHealOverTime(player, item, foodProperties, false);
         else
@@ -205,7 +177,7 @@ public class NoHungerFeature extends Feature {
         if (!doesHealOverTime())
             return;
 
-        float heal = Utils.computeFoodFormula(foodProperties, foodHeal$overTime);
+        float heal = MCUtils.computeFoodFormula(foodProperties, foodHeal$overTime);
         if (heal <= 0f)
             return;
         if (buffCakes && item == null)
@@ -214,7 +186,7 @@ public class NoHungerFeature extends Feature {
             heal *= rawFoodHealPercentage;*/
         heal = applyModifiers(player, heal);
 
-        float strength = Utils.computeFoodFormula(foodProperties, foodHeal$overTimeStrength) / 20f;
+        float strength = MCUtils.computeFoodFormula(foodProperties, foodHeal$overTimeStrength) / 20f;
         setHealOverTime(player, heal, strength);
     }
 
@@ -234,7 +206,7 @@ public class NoHungerFeature extends Feature {
     }
 
     public static float getInstantHealAmount(FoodProperties foodProperties, boolean isRawFood) {
-        float heal = Utils.computeFoodFormula(foodProperties, foodHeal$instantHeal);
+        float heal = MCUtils.computeFoodFormula(foodProperties, foodHeal$instantHeal);
         /*if (isRawFood && rawFoodHealPercentage != 1d)
             heal *= rawFoodHealPercentage;*/
         return heal;
@@ -244,7 +216,7 @@ public class NoHungerFeature extends Feature {
         return !StringUtils.isBlank(foodHeal$instantHeal);
     }
 
-    private static float getFoodRegenLeft(Player player) {
+    static float getFoodRegenLeft(Player player) {
         return ModNBTData.get(player, FOOD_REGEN_LEFT, Float.class);
     }
 
@@ -252,8 +224,7 @@ public class NoHungerFeature extends Feature {
         ModNBTData.put(player, FOOD_REGEN_LEFT, amount);
         ModNBTData.put(player, FOOD_REGEN_STRENGTH, strength);
         if (player instanceof ServerPlayer serverPlayer) {
-            Object msg = new FoodRegenSync(amount, strength);
-            NetworkHandler.CHANNEL.sendTo(msg, serverPlayer.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
+            FoodRegenSync.sync(amount, strength, serverPlayer);
         }
     }
 
@@ -267,8 +238,8 @@ public class NoHungerFeature extends Feature {
             healAmount = regenLeft;
         if (player.getMaxHealth() - player.getHealth() < healAmount)
             healAmount = player.getMaxHealth() - player.getHealth();
-        if (ModList.get().isLoaded("farmersdelight"))
-            healAmount = FarmersDelightIntegration.tryApplyComfort(player, healAmount);
+        //if (ModList.get().isLoaded("farmersdelight"))
+        //    healAmount = FarmersDelightIntegration.tryApplyComfort(player, healAmount);
         player.heal(healAmount);
         regenLeft -= healAmount;
         if (regenLeft <= 0f)
@@ -276,13 +247,13 @@ public class NoHungerFeature extends Feature {
         setHealOverTime(player, regenLeft, regenStrength);
     }
 
-    private static float getFoodRegenStrength(Player player) {
+    static float getFoodRegenStrength(Player player) {
         return ModNBTData.get(player, FOOD_REGEN_STRENGTH, Float.class);
     }
 
     private static float applyModifiers(Player player, float amount) {
-        if (ModList.get().isLoaded("autumnity"))
-            amount = AutumnityIntegration.tryApplyFoulTaste(player, amount);
+        //if (ModList.get().isLoaded("autumnity"))
+        //    amount = AutumnityIntegration.tryApplyFoulTaste(player, amount);
         return amount;
     }
 
@@ -296,159 +267,6 @@ public class NoHungerFeature extends Feature {
      */
     public static boolean isPlayerHurt(Player player) {
         return player.getHealth() > 0 && player.getHealth() <= player.getMaxHealth() - 1;
-    }
-
-    //Render before Regenerating absorption
-    @OnlyIn(Dist.CLIENT)
-    @SubscribeEvent(priority = EventPriority.HIGH)
-    public void removeFoodBar(final RenderGuiOverlayEvent.Pre event) {
-        if (!this.isEnabled())
-            return;
-
-        if (event.getOverlay().equals(VanillaGuiOverlay.FOOD_LEVEL.type()))
-            event.setCanceled(true);
-        //Remove armor bar to render it on the right
-        if (event.getOverlay().equals(VanillaGuiOverlay.ARMOR_LEVEL.type()) && renderArmorAtHunger)
-            event.setCanceled(true);
-            /*Minecraft mc = Minecraft.getInstance();
-            ForgeGui gui = (ForgeGui) mc.gui;
-            if (!mc.options.hideGui && gui.shouldDrawSurvivalElements())
-                renderArmor(event.getGuiGraphics(), event.getWindow().getGuiScaledWidth(), event.getWindow().getGuiScaledHeight());*/
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @SubscribeEvent
-    public static void onRenderGuiOverlayPre(RegisterGuiOverlaysEvent event) {
-        event.registerBelow(VanillaGuiOverlay.AIR_LEVEL.id(), "armor", (gui, guiGraphics, partialTicks, screenWidth, screenHeight) -> {
-            if (Feature.isEnabled(NoHungerFeature.class) && renderArmorAtHunger && gui.shouldDrawSurvivalElements() && gui.shouldDrawSurvivalElements())
-                renderArmor(guiGraphics, screenWidth, screenHeight);
-        });
-    }
-
-    protected static final ResourceLocation GUI_ICONS_LOCATION = ResourceLocation.parse("textures/gui/icons.png");
-    @OnlyIn(Dist.CLIENT)
-    protected static void renderArmor(GuiGraphics guiGraphics, int width, int height) {
-        Minecraft mc = Minecraft.getInstance();
-        ForgeGui gui = (ForgeGui) mc.gui;
-        mc.getProfiler().push(NoHunger.MOD_ID + ":armor");
-
-        RenderSystem.enableBlend();
-        int left = width / 2 + 82;
-        int top = height - gui.rightHeight;
-
-        int level = mc.player.getArmorValue();
-        for (int i = 1; level > 0 && i < 20; i += 2)
-        {
-            if (i < level)
-                guiGraphics.blit(GUI_ICONS_LOCATION, left, top, 34, 9, 9, 9, 256, 256);
-            else if (i == level)
-                ClientUtils.blitVericallyMirrored(GUI_ICONS_LOCATION, guiGraphics, left, top, 25, 9, 9, 9, 256, 256);
-            else
-                guiGraphics.blit(GUI_ICONS_LOCATION, left, top, 16, 9, 9, 9, 256, 256);
-            left -= 8;
-        }
-        if (level > 0)
-            gui.rightHeight += 10;
-
-        RenderSystem.disableBlend();
-        mc.getProfiler().pop();
-    }
-
-    protected static final ResourceLocation OT_REGEN_LOCATION = NoHunger.location("textures/gui/ot_regen.png");
-
-    @OnlyIn(Dist.CLIENT)
-    @SubscribeEvent
-    public static void registerGui(RegisterGuiOverlaysEvent event) {
-        event.registerBelow(VanillaGuiOverlay.PLAYER_HEALTH.id(), "ot_regen", (gui, guiGraphics, partialTicks, screenWidth, screenHeight) -> {
-            if (!Feature.isEnabled(NoHungerFeature.class)
-                    || !gui.shouldDrawSurvivalElements())
-                return;
-
-            Minecraft mc = Minecraft.getInstance();
-            Player player = mc.player;
-            if (player == null
-                    || getFoodRegenLeft(player) <= 0)
-                return;
-
-            int right = screenWidth / 2 - 90;
-            float aRight = Mth.ceil(player.getHealth());
-            int top = screenHeight - gui.leftHeight - 3 + 10;
-            float regenLeft = Math.round(Math.min(20, getFoodRegenLeft(player)) + (player.getHealth() - (int) player.getHealth()));
-            float regenStrength = getFoodRegenStrength(player) * 20 * 1.5f;
-            if (regenStrength == 0f)
-                return;
-            int width = (int) (regenLeft / 2f * 8f);
-            float healthMissing = player.getMaxHealth() - player.getHealth();
-            if (healthMissing < regenLeft || player.getHealth() + regenLeft >= 20)
-                aRight = 21 - regenLeft;
-            right += (int) (aRight / 2f * 8f);
-            if (!FMLLoader.isProduction())
-                player.displayClientMessage(Component.literal("Health: " + player.getHealth() + " Right: " + right + " Width: " + width + " regenLeft: " + regenLeft), true);
-            ClientUtils.setRenderColor(1.2f - (regenStrength / 1.2f), 0.78f, 0.17f, 1f);
-            guiGraphics.blit(OT_REGEN_LOCATION, right, top, 90 - width, 0f, width, 3, 90, 3);
-            ClientUtils.resetRenderColor();
-        });
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @SubscribeEvent
-    public void onTooltip(ItemTooltipEvent event) {
-        if (!this.isEnabled()
-                || event.getItemStack().getItem().getFoodProperties() == null)
-            return;
-
-        Minecraft mc = Minecraft.getInstance();
-        LocalPlayer player = mc.player;
-        if (player == null)
-            return;
-
-        if (!foodTooltip$enabled)
-            return;
-
-        FoodProperties food = event.getItemStack().getItem().getFoodProperties(event.getItemStack(), event.getEntity());
-
-        //TODO Raw food
-        //ChatFormatting color = FoodDrinks.isRawFood(event.getItemStack().getItem()) ? ChatFormatting.DARK_RED : ChatFormatting.GRAY;
-        ChatFormatting color = ChatFormatting.GRAY;
-        MutableComponent component = null;
-        if (MCUtils.getFoodSaturationRestored(food) < foodHeal$saturationThreshold && doesHealInstantly()) {
-            //TODO Raw food
-            //boolean isRawFood = FoodDrinks.isRawFood(event.getItemStack().getItem());
-            //TODO Raw food
-            float heal = getInstantHealAmount(food, false);
-            if (mc.options.advancedItemTooltips) {
-                //noinspection ConstantConditions
-                component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
-                        .append(" ")
-                        .append(Component.translatable(HEALTH_LANG));
-            }
-            else if (heal >= foodTooltip$noshThreshold)
-                component = Component.translatable("nohunger.tooltip.nosh");
-            else
-                component = Component.translatable("nohunger.tooltip.snack");
-        }
-        if (MCUtils.getFoodSaturationRestored(food) >= foodHeal$saturationThreshold && doesHealOverTime()) {
-            //noinspection ConstantConditions
-            float heal = Utils.computeFoodFormula(food, foodHeal$overTime);
-            if (mc.options.advancedItemTooltips) {
-                //Half heart per second by default
-                float strength = Utils.computeFoodFormula(food, foodHeal$overTimeStrength);
-                component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
-                        .append(" ")
-                        .append(Component.translatable(HEALTH_LANG))
-                        .append(" / ")
-                        .append(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal / strength))
-                        .append(" ")
-                        .append(Component.translatable(SEC_LANG));
-            }
-            else {
-                component = Component.translatable("nohunger.tooltip.meal");
-                if (heal > foodTooltip$feastThreshold)
-                    component = Component.translatable("nohunger.tooltip.feast");
-            }
-        }
-        if (component != null)
-            event.getToolTip().add(component.withStyle(color).withStyle(ChatFormatting.ITALIC));
     }
 
 }
