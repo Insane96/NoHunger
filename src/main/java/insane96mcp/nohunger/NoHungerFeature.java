@@ -55,8 +55,10 @@ public class NoHungerFeature extends Feature {
     //@Config(description = "If true, Persistance effect from Atmospheric is replaced by Speed")
     //public static Boolean convertPersistenceToSpeed = true;
 
-    @Config(description = "Make cakes restore 30% missing health, min 1 health")
-    public static Boolean buffCakes = true;
+    @Config(min = 0, max = 1, description = "Make cakes restore this % missing health, min 1 health. Set to 0 to heal like other foods.")
+    public static Double cakes$percentageHeal = 0.4d;
+    @Config(description = "If true, cakes will heal overtime, otherwise will instantly heal.")
+    public static Boolean cakes$healOverTime = true;
 
     @Config(description = "If true, you'll always be able to eat even if you're at full health")
     public static Boolean alwaysEat = false;
@@ -127,7 +129,7 @@ public class NoHungerFeature extends Feature {
         healOnEat(player, item, item.getFoodProperties(event.getItem(), player));
     }
 
-    private static final FoodProperties CAKE_FOOD_PROPERTIES = new FoodProperties.Builder().nutrition(2).saturationModifier(0.8f).build();
+    private static final FoodProperties CAKE_FOOD_PROPERTIES = new FoodProperties.Builder().nutrition(2).saturationModifier(0.1f).build();
 
     @SubscribeEvent
     public void onCakeEat(CakeEatEvent event) {
@@ -162,7 +164,7 @@ public class NoHungerFeature extends Feature {
     public static void healOnEat(Player player, @Nullable Item item, FoodProperties foodProperties) {
         //TODO Raw Food
         //boolean isRawFood = item != null && FoodDrinks.isRawFood(item);
-        if (foodProperties.saturation() >= foodHeal$saturationThreshold)
+        if ((item == null && cakes$healOverTime) || foodProperties.saturation() >= foodHeal$saturationThreshold)
             //TODO Raw Food
             onEatHealOverTime(player, item, foodProperties, false);
         else
@@ -180,8 +182,8 @@ public class NoHungerFeature extends Feature {
         float heal = MCUtils.computeFoodFormula(foodProperties, foodHeal$overTime);
         if (heal <= 0f)
             return;
-        if (buffCakes && item == null)
-            heal = Math.max((player.getMaxHealth() - player.getHealth()) * 0.3f, 1f);
+        if (cakes$percentageHeal > 0 && item == null)
+            heal = Math.max((player.getMaxHealth() - player.getHealth()) * cakes$percentageHeal.floatValue(), 1f);
         /*if (isRawFood && rawFoodHealPercentage != 1d)
             heal *= rawFoodHealPercentage;*/
         heal = applyModifiers(player, heal);
@@ -198,8 +200,8 @@ public class NoHungerFeature extends Feature {
         if (!doesHealInstantly())
             return;
 
-        float heal = buffCakes && item == null
-                ? Math.max((player.getMaxHealth() - player.getHealth()) * 0.3f, 1f)
+        float heal = cakes$percentageHeal > 0 && item == null
+                ? Math.max((player.getMaxHealth() - player.getHealth()) * cakes$percentageHeal.floatValue(), 1f)
                 : getInstantHealAmount(foodProperties, isRawFood);
         heal = applyModifiers(player, heal);
         player.heal(heal);
