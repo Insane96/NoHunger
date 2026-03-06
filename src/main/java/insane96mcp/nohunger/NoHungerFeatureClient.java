@@ -79,7 +79,7 @@ public class NoHungerFeatureClient {
             float aRight = Mth.ceil(player.getHealth());
             int top = screenHeight - mc.gui.leftHeight - 3 + 10;
             float regenLeft = Math.round(Math.min(20, NoHungerFeature.getFoodRegenLeft(player)) + (player.getHealth() - (int) player.getHealth()));
-            float regenStrength = NoHungerFeature.getFoodRegenStrength(player) * 20 * 1.5f;
+            float regenStrength = NoHungerFeature.getFoodRegenStrength(player) * 20;
             if (regenStrength == 0f)
                 return;
             int width = (int) (regenLeft / 2f * 8f);
@@ -88,8 +88,8 @@ public class NoHungerFeatureClient {
                 aRight = 21 - regenLeft;
             right += (int) (aRight / 2f * 8f);
             if (!FMLLoader.isProduction())
-                player.displayClientMessage(Component.literal("Health: " + player.getHealth() + " Right: " + right + " Width: " + width + " regenLeft: " + regenLeft), true);
-            ClientUtils.setRenderColor(1.2f - (regenStrength / 1.2f), 0.78f, 0.17f, 1f);
+                player.displayClientMessage(Component.literal("Health: " + player.getHealth() + " Right: " + right + " Width: " + width + " regenLeft: " + regenLeft + " regenStrength: " + regenStrength), true);
+            ClientUtils.setRenderColor(1.2f - (regenStrength / 0.5f), 0.78f, 0.17f, 1f);
             guiGraphics.blit(OT_REGEN_LOCATION, right, top, 90 - width, 0f, width, 3, 90, 3);
             ClientUtils.resetRenderColor();
         });
