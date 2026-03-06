@@ -35,14 +35,14 @@ public class NoHungerFeature extends Feature {
     private static ResourceLocation FOOD_REGEN_LEFT;
     private static ResourceLocation FOOD_REGEN_STRENGTH;
 
-    @Config(min = 0d, description = "The formula to calculate the health regenerated overtime when eating food. Leave empty to disable. Variables as hunger, saturation_modifier, effectiveness as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
-    public static String foodHeal$overTime = "hunger * 1.2";
-    @Config(description = "How much HP does food regen each second? Variables as hunger, saturation_modifier, effectiveness as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html")
-    public static String foodHeal$overTimeStrength = "MAX(0.15, 5 * saturation_modifier * (1 / hunger))";
+    @Config(min = 0d, description = "The formula to calculate the health regenerated overtime when eating food. Leave empty to disable. Variables as nutrition, saturation, eat_seconds as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
+    public static String foodHeal$overTime = "nutrition";
+    @Config(description = "How much HP does food regen each second? Variables as nutrition, saturation, eat_seconds as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html")
+    public static String foodHeal$overTimeStrength = "MAX(0.15, 0.418 * saturation)";
     @Config(description = "Over Time Heal will be consumed at the rate of exhaustion multiplied by this")
     public static Double foodHeal$overTimeDecay = 0.02d;
-    @Config(min = 0d, description = "The formula to calculate the health restored instantly when eating. Leave empty to disable. To have the same effect as pre-Beta 1.8 food just use \"hunger\". Variables as hunger, saturation_modifier, effectiveness as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
-    public static String foodHeal$instantHeal = "0.5 * ROUND((hunger^1.3) * 0.35, 1) / 0.5";
+    @Config(min = 0d, description = "The formula to calculate the health restored instantly when eating. Leave empty to disable. To have the same effect as pre-Beta 1.8 food just use \"hunger\". Variables as nutrition, saturation, eat_seconds as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
+    public static String foodHeal$instantHeal = "0.5 * ROUND((nutrition^1.3) * 0.35, 1) / 0.5";
     @Config(min = 0d, description = "Foods below this saturation will instantly heal, foods equal or above this threshold will have overtime heal.")
     public static Double foodHeal$saturationThreshold = 4d;
 
@@ -52,8 +52,8 @@ public class NoHungerFeature extends Feature {
     @Config(description = "If true, Saturation effect is replaced by Haste")
     public static Boolean convertSaturationToHaste = true;
 
-    @Config(description = "If true, Persistance effect from Atmospheric is replaced by Speed")
-    public static Boolean convertPersistenceToSpeed = true;
+    //@Config(description = "If true, Persistance effect from Atmospheric is replaced by Speed")
+    //public static Boolean convertPersistenceToSpeed = true;
 
     @Config(description = "Make cakes restore 30% missing health, min 1 health")
     public static Boolean buffCakes = true;
