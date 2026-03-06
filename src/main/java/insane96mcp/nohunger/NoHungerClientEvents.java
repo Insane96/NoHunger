@@ -51,6 +51,8 @@ public class NoHungerClientEvents {
             return;
 
         FoodProperties food = event.getItemStack().getItem().getFoodProperties(event.getItemStack(), event.getEntity());
+        if (food == null)
+            return;
 
         //TODO Raw food
         //ChatFormatting color = FoodDrinks.isRawFood(event.getItemStack().getItem()) ? ChatFormatting.DARK_RED : ChatFormatting.GRAY;
