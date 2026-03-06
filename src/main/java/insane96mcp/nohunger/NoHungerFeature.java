@@ -55,8 +55,10 @@ public class NoHungerFeature extends Feature {
     //@Config(description = "If true, Persistance effect from Atmospheric is replaced by Speed")
     //public static Boolean convertPersistenceToSpeed = true;
 
-    @Config(min = 0, max = 1, description = "Make cakes restore this % missing health, min 1 health. Set to 0 to heal like other foods.")
+    @Config(min = 0, max = 1, description = "Make cakes restore this % missing health, min 'Min Heal' health. Set to 0 to heal like other foods.")
     public static Double cakes$percentageHeal = 0.5d;
+    @Config(min = 0)
+    public static Double cakes$minHeal = 2d;
     @Config(description = "If true, cakes will heal overtime, otherwise will instantly heal.")
     public static Boolean cakes$healOverTime = true;
 
@@ -183,7 +185,7 @@ public class NoHungerFeature extends Feature {
         if (heal <= 0f)
             return;
         if (cakes$percentageHeal > 0 && item == null)
-            heal = Math.max((player.getMaxHealth() - player.getHealth()) * cakes$percentageHeal.floatValue(), 1f);
+            heal = Math.max((player.getMaxHealth() - player.getHealth()) * cakes$percentageHeal.floatValue(), cakes$minHeal.floatValue());
         /*if (isRawFood && rawFoodHealPercentage != 1d)
             heal *= rawFoodHealPercentage;*/
         heal = applyModifiers(player, heal);
@@ -201,7 +203,7 @@ public class NoHungerFeature extends Feature {
             return;
 
         float heal = cakes$percentageHeal > 0 && item == null
-                ? Math.max((player.getMaxHealth() - player.getHealth()) * cakes$percentageHeal.floatValue(), 1f)
+                ? Math.max((player.getMaxHealth() - player.getHealth()) * cakes$percentageHeal.floatValue(), cakes$minHeal.floatValue())
                 : getInstantHealAmount(foodProperties, isRawFood);
         heal = applyModifiers(player, heal);
         player.heal(heal);
