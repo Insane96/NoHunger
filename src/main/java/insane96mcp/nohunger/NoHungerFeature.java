@@ -56,7 +56,7 @@ public class NoHungerFeature extends Feature {
     //public static Boolean convertPersistenceToSpeed = true;
 
     @Config(min = 0, max = 1, description = "Make cakes restore this % missing health, min 1 health. Set to 0 to heal like other foods.")
-    public static Double cakes$percentageHeal = 0.4d;
+    public static Double cakes$percentageHeal = 0.5d;
     @Config(description = "If true, cakes will heal overtime, otherwise will instantly heal.")
     public static Boolean cakes$healOverTime = true;
 
