@@ -71,7 +71,7 @@ public class NoHungerFeature extends Feature {
     @Config(description = "Above how much health restored food tooltip will show Nosh instead of Snack")
     public static Double foodTooltip$noshThreshold = 1d;
     @Config(description = "Above how much health restored food tooltip will show Feast instead of Meal")
-    public static Double foodTooltip$feastThreshold = 12d;
+    public static Double foodTooltip$feastThreshold = 7d;
 
     @Config(description = "(Client Only) Armor is rendered in the place of Hunger bar")
     public static Boolean renderArmorAtHunger = true;
