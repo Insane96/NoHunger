@@ -1,3 +1,6 @@
+## Upcoming
+* Fixed some config options descriptions
+
 ## 2.0.0.0-beta
 Ported to 1.21.1
 
