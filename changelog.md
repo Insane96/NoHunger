@@ -1,4 +1,4 @@
-## Upcoming
+## 2.0.0.1
 * Fixed some config options descriptions
 
 ## 2.0.0.0-beta
