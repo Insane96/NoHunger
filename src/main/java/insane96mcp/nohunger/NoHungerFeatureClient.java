@@ -2,10 +2,12 @@ package insane96mcp.nohunger;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import insane96mcp.insanelib.core.feature.Feature;
+import insane96mcp.insanelib.mixin.accessor.GuiGraphicsAccessor;
 import insane96mcp.insanelib.util.ClientUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -19,6 +21,9 @@ import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 
 @EventBusSubscriber(modid = NoHunger.MOD_ID, value = Dist.CLIENT)
 public class NoHungerFeatureClient {
+    private static final ResourceLocation ARMOR_EMPTY_SPRITE = ResourceLocation.withDefaultNamespace("hud/armor_empty");
+    private static final ResourceLocation ARMOR_HALF_SPRITE = ResourceLocation.withDefaultNamespace("hud/armor_half");
+    private static final ResourceLocation ARMOR_FULL_SPRITE = ResourceLocation.withDefaultNamespace("hud/armor_full");
 
     @SubscribeEvent
     public static void registerArmorLayer(RegisterGuiLayersEvent event) {
@@ -29,10 +34,10 @@ public class NoHungerFeatureClient {
         });
     }
 
-    protected static final ResourceLocation GUI_ICONS_LOCATION = ResourceLocation.parse("textures/gui/icons.png");
-
     protected static void renderArmor(GuiGraphics guiGraphics, int width, int height) {
         Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null)
+            return;
         Gui gui = mc.gui;
         mc.getProfiler().push(NoHunger.MOD_ID + ":armor");
 
@@ -44,11 +49,11 @@ public class NoHungerFeatureClient {
         for (int i = 1; level > 0 && i < 20; i += 2)
         {
             if (i < level)
-                guiGraphics.blit(GUI_ICONS_LOCATION, left, top, 34, 9, 9, 9, 256, 256);
+                guiGraphics.blitSprite(ARMOR_FULL_SPRITE, left, top, 9, 9);
             else if (i == level)
-                ClientUtils.blitVerticallyMirrored(GUI_ICONS_LOCATION, guiGraphics, left, top, 25, 9, 9, 9, 256, 256);
+                blitSpriteVerticallyMirrored(guiGraphics, ARMOR_HALF_SPRITE, left, top, 9, 9);
             else
-                guiGraphics.blit(GUI_ICONS_LOCATION, left, top, 16, 9, 9, 9, 256, 256);
+                guiGraphics.blitSprite(ARMOR_EMPTY_SPRITE, left, top, 9, 9);
             left -= 8;
         }
         if (level > 0)
@@ -58,6 +63,15 @@ public class NoHungerFeatureClient {
         mc.getProfiler().pop();
     }
 
+    protected static void blitSpriteVerticallyMirrored(GuiGraphics guiGraphics, ResourceLocation sprite, int x, int y, int width, int height) {
+        TextureAtlasSprite textureAtlasSprite = Minecraft.getInstance().getGuiSprites().getSprite(sprite);
+        ((GuiGraphicsAccessor) guiGraphics).invokeInnerBlit(
+                textureAtlasSprite.atlasLocation(),
+                x, x + width, y, y + height, 0,
+                textureAtlasSprite.getU1(), textureAtlasSprite.getU0(),
+                textureAtlasSprite.getV0(), textureAtlasSprite.getV1());
+    }
+
     protected static final ResourceLocation OT_REGEN_LOCATION = NoHunger.location("textures/gui/ot_regen.png");
 
     @SubscribeEvent
@@ -65,6 +79,7 @@ public class NoHungerFeatureClient {
         event.registerBelow(VanillaGuiLayers.PLAYER_HEALTH, NoHunger.location("ot_regen"), (guiGraphics, partialTick) -> {
             Minecraft mc = Minecraft.getInstance();
             if (!Feature.isEnabled(NoHungerFeature.class)
+                    || mc.gameMode == null
                     || !mc.gameMode.canHurtPlayer())
                 return;
 
