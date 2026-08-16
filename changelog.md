@@ -1,5 +1,6 @@
 # Upcoming
 * Fixed armor bar rendering with hidden GUI
+* Fixed regen bar too much to the left if player's health was above 20
 
 # 2.0.0.3
 * Fixed regen bar ignoring max health

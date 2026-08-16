@@ -99,9 +99,13 @@ public class NoHungerFeatureClient {
             // Default: starts exactly at the player's current health, rounded up.
             float aRight = Mth.ceil(player.getHealth());
             int top = screenHeight - mc.gui.leftHeight - 3 + 10;
-            // Use the player's max health so this also renders correctly
-            // when max health has been increased or decreased by other mods/effects.
-            float maxHealth = player.getMaxHealth();
+            // Use the player's max health so this also renders correctly when max health has
+            // been decreased by other mods/effects, but cap it at 20 (vanilla's cap of 10 hearts
+            // per row): when max health exceeds 20, vanilla wraps the extra hearts into a second
+            // row above, so this bar (which only occupies a single 90px-wide row) must keep
+            // treating the row as if it only ever holds 20 HP, otherwise the re-anchoring branch
+            // below never triggers and the bar overshoots far past the visible row.
+            float maxHealth = Math.min(player.getMaxHealth(), 20f);
             // Raw, uncapped amount of health still pending from the "overtime" regen.
             float regenLeft = NoHungerFeature.getFoodRegenLeft(player);
             float regenStrength = NoHungerFeature.getFoodRegenStrength(player) * 20;
