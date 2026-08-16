@@ -1,3 +1,6 @@
+# Upcoming
+* Fixed armor bar rendering with hidden GUI
+
 # 2.0.0.3
 * Fixed regen bar ignoring max health
 * Fixed regen bar being smaller than health bar if exceeding missing health

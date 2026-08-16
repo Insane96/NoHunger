@@ -29,7 +29,7 @@ public class NoHungerFeatureClient {
     public static void registerArmorLayer(RegisterGuiLayersEvent event) {
         event.registerBelow(VanillaGuiLayers.AIR_LEVEL, NoHunger.location("armor"), (guiGraphics, partialTick) -> {
             Minecraft mc = Minecraft.getInstance();
-            if (Feature.isEnabled(NoHungerFeature.class) && NoHungerFeature.renderArmorAtHunger && mc.gameMode.canHurtPlayer())
+            if (Feature.isEnabled(NoHungerFeature.class) && NoHungerFeature.renderArmorAtHunger && mc.gameMode.canHurtPlayer() && !mc.options.hideGui)
                 renderArmor(guiGraphics, mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
         });
     }
