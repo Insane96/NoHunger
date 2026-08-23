@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import insane96mcp.insanelib.core.feature.Feature;
 import insane96mcp.insanelib.mixin.accessor.GuiGraphicsAccessor;
 import insane96mcp.insanelib.util.ClientUtils;
+import insane96mcp.nohunger.mixin.client.GuiAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
@@ -11,6 +12,8 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -27,7 +30,7 @@ public class NoHungerFeatureClient {
 
     @SubscribeEvent
     public static void registerArmorLayer(RegisterGuiLayersEvent event) {
-        event.registerBelow(VanillaGuiLayers.AIR_LEVEL, NoHunger.location("armor"), (guiGraphics, partialTick) -> {
+        event.registerBelow(VanillaGuiLayers.AIR_LEVEL, NoHunger.id("armor"), (guiGraphics, partialTick) -> {
             Minecraft mc = Minecraft.getInstance();
             if (Feature.isEnabled(NoHungerFeature.class) && NoHungerFeature.renderArmorAtHunger && mc.gameMode.canHurtPlayer() && !mc.options.hideGui)
                 renderArmor(guiGraphics, mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
@@ -72,69 +75,77 @@ public class NoHungerFeatureClient {
                 textureAtlasSprite.getV0(), textureAtlasSprite.getV1());
     }
 
-    protected static final ResourceLocation OT_REGEN_LOCATION = NoHunger.location("textures/gui/ot_regen.png");
+    protected static final ResourceLocation OT_REGEN_LOCATION = NoHunger.id("textures/gui/ot_regen.png");
 
     @SubscribeEvent
     public static void registerGui(RegisterGuiLayersEvent event) {
-        // Register the "overtime regen" (ot_regen) indicator bar just below the player's health row.
-        event.registerBelow(VanillaGuiLayers.PLAYER_HEALTH, NoHunger.location("ot_regen"), (guiGraphics, partialTick) -> {
+        event.registerAbove(VanillaGuiLayers.PLAYER_HEALTH, NoHunger.id("ot_regen"), (guiGraphics, partialTick) -> {
             Minecraft mc = Minecraft.getInstance();
-            // Nothing to show if the feature is disabled or the player can't take damage (creative/spectator).
             if (!Feature.isEnabled(NoHungerFeature.class)
                     || mc.gameMode == null
                     || !mc.gameMode.canHurtPlayer())
                 return;
 
             Player player = mc.player;
-            // No player, or no pending regen at all: nothing to draw.
-            if (player == null
-                    || NoHungerFeature.getFoodRegenLeft(player) <= 0)
+            if (player == null)
                 return;
 
-            int screenWidth = mc.getWindow().getGuiScaledWidth();
-            int screenHeight = mc.getWindow().getGuiScaledHeight();
-            // Left edge of the 90px-wide heart row; the base x position everything else is offset from.
-            int right = screenWidth / 2 - 90;
-            // aRight is the bar's left edge expressed in HP units (offset from `right`).
-            // Default: starts exactly at the player's current health, rounded up.
-            float aRight = Mth.ceil(player.getHealth());
-            int top = screenHeight - mc.gui.leftHeight - 3 + 10;
-            // Use the player's max health so this also renders correctly when max health has
-            // been decreased by other mods/effects, but cap it at 20 (vanilla's cap of 10 hearts
-            // per row): when max health exceeds 20, vanilla wraps the extra hearts into a second
-            // row above, so this bar (which only occupies a single 90px-wide row) must keep
-            // treating the row as if it only ever holds 20 HP, otherwise the re-anchoring branch
-            // below never triggers and the bar overshoots far past the visible row.
-            float maxHealth = Math.min(player.getMaxHealth(), 20f);
-            // Raw, uncapped amount of health still pending from the "overtime" regen.
             float regenLeft = NoHungerFeature.getFoodRegenLeft(player);
+            if (regenLeft <= 0)
+                return;
+
             float regenStrength = NoHungerFeature.getFoodRegenStrength(player) * 20;
-            // Add the fractional part of current health (smooths bar growth as health ticks up),
-            // then cap at maxHealth + 1. The "+1" (one HP == half a heart) is a deliberate overshoot
-            // allowance: it's what makes the bar poke out exactly half a heart past the last heart
-            // when regen exceeds the missing health, and it also lets the bar cover the whole row
-            // (aRight sliding down to 0) when regenLeft is higher than max health.
-            float clampedRegenLeft = Math.round(Math.min(maxHealth + 1, regenLeft + (player.getHealth() - (int) player.getHealth())));
             if (regenStrength == 0f)
                 return;
-            // Pixel width of the drawn bar: 2 HP == 8px, matching the 8px spacing between hearts.
-            int width = (int) (clampedRegenLeft / 2f * 8f);
-            float healthMissing = maxHealth - player.getHealth();
-            // If the pending regen would push the player past max health, re-anchor the bar so its
-            // RIGHT edge always lands exactly at maxHealth + 1 (half a heart past the last heart)
-            // instead of letting it keep growing further right as clampedRegenLeft increases.
-            // Because aRight + clampedRegenLeft == maxHealth + 1 in this branch, the left edge
-            // (aRight) naturally slides left as clampedRegenLeft grows, down to a floor of 0.
-            if (healthMissing < clampedRegenLeft || player.getHealth() + clampedRegenLeft >= maxHealth)
-                aRight = maxHealth + 1 - clampedRegenLeft;
-            // Convert aRight from HP units to pixels and offset the base x position with it.
-            right += (int) (aRight / 2f * 8f);
+
+            Gui gui = mc.gui;
+            GuiAccessor accessor = (GuiAccessor) gui;
+            RandomSource random = accessor.getRandom();
+
+            float currentHealth = player.getHealth();
+            int ceilCurrentHealth = Mth.ceil(currentHealth);
+            int displayHealth = accessor.getDisplayHealth();
+            float maxHealth = player.getMaxHealth();
+            float f = Math.max(maxHealth, Math.max(displayHealth, ceilCurrentHealth));
+            int absorptionAmount = Mth.ceil(player.getAbsorptionAmount());
+            int rows = Mth.ceil((f + absorptionAmount) / 2f / 10f);
+            int rowHeight = Math.max(10 - (rows - 2), 3);
+
+            int guiWidth = mc.getWindow().getGuiScaledWidth();
+            int guiHeight = mc.getWindow().getGuiScaledHeight();
+            int x = guiWidth / 2 - 91;
+            int y = guiHeight - gui.leftHeight + (rows - 1) * rowHeight + 10;
+
+            int i = Mth.ceil(f / 2f);
+            int j = Mth.ceil(absorptionAmount / 2f);
+            int totalPixels = Math.min(i * 8, Mth.ceil(regenLeft / 2f * 8f));
+            int tickCount = gui.getGuiTicks();
+            random.setSeed((long) tickCount * 312871L);
+            int offsetHeartIndex = player.hasEffect(MobEffects.REGENERATION) ? tickCount % Mth.ceil(f + 5f) : -1;
+
             if (!FMLLoader.isProduction())
-                player.displayClientMessage(Component.literal("Health: " + player.getHealth() + " Right: " + right + " Width: " + width + " regenLeft: " + regenLeft + " regenStrength: " + regenStrength), true);
-            // Tint the bar based on regen strength.
-            ClientUtils.setRenderColor(1.2f - (regenStrength / 0.5f), 0.78f, 0.17f, 1f);
-            // Draw the rightmost `width` pixels of the 90px-wide ot_regen texture at (right, top).
-            guiGraphics.blit(OT_REGEN_LOCATION, right, top, 90 - width, 0f, width, 3, 90, 3);
+                player.displayClientMessage(Component.literal("Health: " + currentHealth + " totalPixels: " + totalPixels + " regenLeft: " + regenLeft + " regenStrength: " + regenStrength), true);
+
+            // ClientUtils.setRenderColor(1.2f - (regenStrength / 0.5f), 0.78f, 0.17f, 1f);
+            ClientUtils.setRenderColor(0.9f, 0.9f, 0.9f, 1f);
+            RenderSystem.enableBlend();
+            for (int l = i + j - 1; l >= 0; l--) {
+                int i1 = l / 10;
+                int j1 = l % 10;
+                int k1 = x + j1 * 8;
+                int l1 = y - i1 * rowHeight;
+                if (ceilCurrentHealth + absorptionAmount <= 4)
+                    l1 += random.nextInt(2);
+                if (l < i && l == offsetHeartIndex)
+                    l1 -= 2;
+
+                if (l < i) {
+                    int coveredPixels = Mth.clamp(totalPixels - l * 8, 0, 9);
+                    if (coveredPixels > 0)
+                        guiGraphics.blit(OT_REGEN_LOCATION, k1, l1, 0, 0, coveredPixels, 9, 9, 9);
+                }
+            }
+            RenderSystem.disableBlend();
             ClientUtils.resetRenderColor();
         });
     }
