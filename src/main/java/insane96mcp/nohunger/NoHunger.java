@@ -18,7 +18,7 @@ public class NoHunger {
     public static ILModConfig CONFIG;
 
     public NoHunger(IEventBus eventBus, ModContainer modContainer) {
-        CONFIG = new ILModConfig(location("main"), "Single Module", ModConfig.Type.COMMON,
+        CONFIG = new ILModConfig(id("main"), "Single Module", ModConfig.Type.COMMON,
                 eventBus, NoHunger.class.getClassLoader());
         modContainer.registerConfig(ModConfig.Type.COMMON, CONFIG.spec);
 
@@ -27,7 +27,7 @@ public class NoHunger {
         //NHRegistries.REGISTRIES.forEach(register -> register.register(modEventBus));
     }
 
-    public static ResourceLocation location(final String path) {
+    public static ResourceLocation id(final String path) {
         return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
     }
 

@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record NoHungerSync(boolean noHunger) implements CustomPacketPayload {
 
-    public static final Type<NoHungerSync> TYPE = new Type<>(NoHunger.location("no_hunger_sync"));
+    public static final Type<NoHungerSync> TYPE = new Type<>(NoHunger.id("no_hunger_sync"));
 
     public static final StreamCodec<FriendlyByteBuf, NoHungerSync> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.BOOL, NoHungerSync::noHunger,

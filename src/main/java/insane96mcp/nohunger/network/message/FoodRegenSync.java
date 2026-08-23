@@ -12,7 +12,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record FoodRegenSync(float regenAmount, float regenStrength) implements CustomPacketPayload {
 
-    public static final Type<FoodRegenSync> TYPE = new Type<>(NoHunger.location("food_regen_sync"));
+    public static final Type<FoodRegenSync> TYPE = new Type<>(NoHunger.id("food_regen_sync"));
 
     public static final StreamCodec<FriendlyByteBuf, FoodRegenSync> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.FLOAT, FoodRegenSync::regenAmount,
