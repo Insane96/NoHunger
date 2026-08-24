@@ -72,6 +72,8 @@ public class NoHungerFeature extends Feature {
 
     @Config(description = "(Client Only) If enabled, Foods will show \"Snack\" or \"Nosh\" when the food instantly heals and \"Meal\" or \"Feast\" when the food heals over time. If advanced tooltips are enabled, the food will show how much it restores")
     public static Boolean foodTooltip$enabled = true;
+    @Config(description = "Always show exact values in the food tooltip instead of \"Snack\", \"Feast\", etc.")
+    public static Boolean foodTooltip$alwaysAdvancedTooltip = true;
     @Config(description = "Above how much health restored food tooltip will show Nosh instead of Snack")
     public static Double foodTooltip$noshThreshold = 1d;
     @Config(description = "Above how much health restored food tooltip will show Feast instead of Meal")

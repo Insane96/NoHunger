@@ -1,4 +1,5 @@
 # Upcoming
+* Added config option to always show how much health will food regen instead of locking it behind advanced tooltips
 * Improved the overtime regen overlay texture. Thanks to @skippyzii
 
 # 2.0.1.0

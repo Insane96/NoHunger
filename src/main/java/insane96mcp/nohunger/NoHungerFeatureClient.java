@@ -177,16 +177,13 @@ public class NoHungerFeatureClient {
 
     @SubscribeEvent
     public static void onTooltip(ItemTooltipEvent event) {
-        if (!Feature.isEnabled(NoHungerFeature.class)
-                || event.getItemStack().getItem().getFoodProperties(event.getItemStack(), event.getEntity()) == null)
-            return;
-
-        Minecraft mc = Minecraft.getInstance();
+		if (!Feature.isEnabled(NoHungerFeature.class)
+				|| event.getItemStack().getItem().getFoodProperties(event.getItemStack(), event.getEntity()) == null
+                || !NoHungerFeature.foodTooltip$enabled)
+			return;
+		Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
         if (player == null)
-            return;
-
-        if (!NoHungerFeature.foodTooltip$enabled)
             return;
 
         FoodProperties food = event.getItemStack().getItem().getFoodProperties(event.getItemStack(), event.getEntity());
@@ -198,7 +195,7 @@ public class NoHungerFeatureClient {
         MutableComponent component = null;
         if (food.saturation() < NoHungerFeature.foodHeal$saturationThreshold && NoHungerFeature.doesHealInstantly()) {
             float heal = NoHungerFeature.getInstantHealAmount(food, false);
-            if (mc.options.advancedItemTooltips) {
+            if (mc.options.advancedItemTooltips || NoHungerFeature.foodTooltip$alwaysAdvancedTooltip) {
                 //noinspection ConstantConditions
                 component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
                         .append(" ")
@@ -212,7 +209,7 @@ public class NoHungerFeatureClient {
         if (food.saturation() >= NoHungerFeature.foodHeal$saturationThreshold && NoHungerFeature.doesHealOverTime()) {
             //noinspection ConstantConditions
             float heal = MCUtils.computeFoodFormula(food, NoHungerFeature.foodHeal$overTime);
-            if (mc.options.advancedItemTooltips) {
+            if (mc.options.advancedItemTooltips || NoHungerFeature.foodTooltip$alwaysAdvancedTooltip) {
                 //Half heart per second by default
                 float strength = MCUtils.computeFoodFormula(food, NoHungerFeature.foodHeal$overTimeStrength);
                 component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
