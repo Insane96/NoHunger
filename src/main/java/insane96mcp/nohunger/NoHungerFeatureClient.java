@@ -89,7 +89,11 @@ public class NoHungerFeatureClient {
 
     protected static final ResourceLocation OT_REGEN_LOCATION = NoHunger.id("textures/gui/ot_regen.png");
 
-    @SubscribeEvent
+    // LOWEST: registerAbove(PLAYER_HEALTH, ...) always inserts immediately after PLAYER_HEALTH, so whichever mod
+    // calls it last claims that adjacent slot and pushes earlier registrants (e.g. Insane Survival Overhaul's
+    // regenerating absorption bar, which also anchors to PLAYER_HEALTH) further out. Registering last here means
+    // this layer renders right after PLAYER_HEALTH, before any other mod's leftHeight-inflating layer can run.
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void registerGui(RegisterGuiLayersEvent event) {
         event.registerAbove(VanillaGuiLayers.PLAYER_HEALTH, NoHunger.id("ot_regen"), (guiGraphics, partialTick) -> {
             Minecraft mc = Minecraft.getInstance();
