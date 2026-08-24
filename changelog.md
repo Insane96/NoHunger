@@ -1,3 +1,6 @@
+# Upcoming
+* Improved the overtime regen overlay texture. Thanks to @skippyzii
+
 # 2.0.1.0
 * Changed the Overtime regen overlay to golden outline on the hearts
 
