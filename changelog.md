@@ -1,4 +1,4 @@
-# Upcoming
+# 2.0.2.0
 * Added config option to always show how much health will food regen instead of locking it behind advanced tooltips
 * Improved the overtime regen overlay texture. Thanks to @skippyzii
 * Fixed overtime regen overlay misplaced with ISO's Regenerating Absorption
