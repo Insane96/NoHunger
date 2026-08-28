@@ -99,7 +99,8 @@ public class NoHungerFeatureClient {
             Minecraft mc = Minecraft.getInstance();
             if (!Feature.isEnabled(NoHungerFeature.class)
                     || mc.gameMode == null
-                    || !mc.gameMode.canHurtPlayer())
+                    || !mc.gameMode.canHurtPlayer()
+                    || mc.options.hideGui)
                 return;
 
             Player player = mc.player;
