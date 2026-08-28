@@ -1,5 +1,6 @@
-# Upcoming
+# 2.0.2.1
 * Added config option to force the overtime regen overlay to always render on the first row of hearts, capping at 20 health. Useful for mods that change heart rendering
+* Fixed regen overlay rendering with F1 hidden GUI
 
 # 2.0.2.0
 * Added config option to always show how much health will food regen instead of locking it behind advanced tooltips
