@@ -82,6 +82,9 @@ public class NoHungerFeature extends Feature {
     @Config(description = "(Client Only) Armor is rendered in the place of Hunger bar")
     public static Boolean renderArmorAtHunger = true;
 
+    @Config(description = "(Client Only) If true, the overtime regen overlay will always render on the first row of hearts, capping at 20 health. Useful for mods that change heart rendering, showing them on the same row")
+    public static Boolean otRegenOverlay$forceFirstRow = false;
+
     public void init(Module module, boolean enabledByDefault, boolean canBeDisabled) {
         super.init(module, enabledByDefault, canBeDisabled);
 

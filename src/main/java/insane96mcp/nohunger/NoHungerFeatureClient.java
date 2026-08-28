@@ -124,7 +124,8 @@ public class NoHungerFeatureClient {
             float maxHealth = player.getMaxHealth();
             float f = Math.max(maxHealth, Math.max(displayHealth, ceilCurrentHealth));
             int absorptionAmount = Mth.ceil(player.getAbsorptionAmount());
-            int rows = Mth.ceil((f + absorptionAmount) / 2f / 10f);
+            boolean forceFirstRow = NoHungerFeature.otRegenOverlay$forceFirstRow;
+            int rows = forceFirstRow ? 1 : Mth.ceil((f + absorptionAmount) / 2f / 10f);
             int rowHeight = Math.max(10 - (rows - 2), 3);
 
             int guiWidth = mc.getWindow().getGuiScaledWidth();
@@ -134,6 +135,10 @@ public class NoHungerFeatureClient {
 
             int i = Mth.ceil(f / 2f);
             int j = Mth.ceil(absorptionAmount / 2f);
+            if (forceFirstRow) {
+                i = Math.min(i, 10);
+                j = 0;
+            }
             int totalPixels = Math.min(i * 8, Mth.ceil(regenLeft / 2f * 8f));
             int tickCount = gui.getGuiTicks();
             random.setSeed((long) tickCount * 312871L);
