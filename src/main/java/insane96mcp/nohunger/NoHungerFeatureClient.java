@@ -13,6 +13,7 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -39,6 +40,7 @@ public class NoHungerFeatureClient {
     private static final String HEALTH_LANG = NoHunger.lang("tooltip.health");
     private static final String MISSING_HEALTH_LANG = NoHunger.lang("tooltip.missing_health");
     private static final String SEC_LANG = NoHunger.lang("tooltip.sec");
+    private static final String OVER_LANG = NoHunger.lang("tooltip.over");
 
     @SubscribeEvent
     public static void registerArmorLayer(RegisterGuiLayersEvent event) {
@@ -201,14 +203,12 @@ public class NoHungerFeatureClient {
             return;
 
         //ChatFormatting color = FoodDrinks.isRawFood(event.getItemStack().getItem()) ? ChatFormatting.DARK_RED : ChatFormatting.GRAY;
-        ChatFormatting color = ChatFormatting.GRAY;
+        ChatFormatting color = ChatFormatting.GREEN;
         MutableComponent component = null;
         if (food.saturation() < NoHungerFeature.foodHeal$saturationThreshold && NoHungerFeature.doesHealInstantly()) {
-            float heal = NoHungerFeature.getInstantHealAmount(food, false);
+            float heal = NoHungerFeature.getInstantHealAmount(food, false) / 2f;
             if (mc.options.advancedItemTooltips || NoHungerFeature.foodTooltip$alwaysAdvancedTooltip) {
-                //noinspection ConstantConditions
                 component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
-                        .append(" ")
                         .append(Component.translatable(HEALTH_LANG));
             }
             else if (heal >= NoHungerFeature.foodTooltip$noshThreshold)
@@ -217,17 +217,15 @@ public class NoHungerFeatureClient {
                 component = Component.translatable("nohunger.tooltip.snack");
         }
         if (food.saturation() >= NoHungerFeature.foodHeal$saturationThreshold && NoHungerFeature.doesHealOverTime()) {
-            //noinspection ConstantConditions
-            float heal = MCUtils.computeFoodFormula(food, NoHungerFeature.foodHeal$overTime);
+            float heal = MCUtils.computeFoodFormula(food, NoHungerFeature.foodHeal$overTime) / 2f;
             if (mc.options.advancedItemTooltips || NoHungerFeature.foodTooltip$alwaysAdvancedTooltip) {
-                //Half heart per second by default
                 float strength = MCUtils.computeFoodFormula(food, NoHungerFeature.foodHeal$overTimeStrength);
                 component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
-                        .append(" ")
                         .append(Component.translatable(HEALTH_LANG))
-                        .append(" / ")
+                        .append(CommonComponents.space())
+                        .append(Component.translatable(OVER_LANG))
+                        .append(CommonComponents.space())
                         .append(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal / strength))
-                        .append(" ")
                         .append(Component.translatable(SEC_LANG));
             }
             else {
@@ -237,6 +235,6 @@ public class NoHungerFeatureClient {
             }
         }
         if (component != null)
-            event.getToolTip().add(component.withStyle(color).withStyle(ChatFormatting.ITALIC));
+            event.getToolTip().add(component.withStyle(color));
     }
 }

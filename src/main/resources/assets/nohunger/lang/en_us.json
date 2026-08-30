@@ -1,7 +1,8 @@
 {
-    "nohunger.tooltip.health": "Health",
-    "nohunger.tooltip.missing_health": "Missing Health",
-    "nohunger.tooltip.sec": "sec",
+    "nohunger.tooltip.health": "♥",
+    "nohunger.tooltip.missing_health": "Missing ♥",
+    "nohunger.tooltip.over": "over",
+    "nohunger.tooltip.sec": "s",
     "nohunger.tooltip.snack": "Snack",
     "nohunger.tooltip.nosh": "Nosh",
     "nohunger.tooltip.meal": "Meal",
