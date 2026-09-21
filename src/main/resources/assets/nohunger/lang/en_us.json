@@ -8,5 +8,19 @@
     "nohunger.tooltip.meal": "Meal",
     "nohunger.tooltip.feast": "Feast",
 
+    "enchantment.nohunger.well_fed": "Well Fed",
+    "enchantment.nohunger.well_fed.desc": "Increases health regeneration speed from eating",
+
+    "enchantment.nohunger.curse_of_malnutrition": "Curse of Malnutrition",
+    "enchantment.nohunger.curse_of_malnutrition.desc": "Reduces health regeneration speed from eating",
+
+    "rune.nohunger.well_fed": "Well Fed",
+    "rune.nohunger.well_fed.description": "Increases health regeneration speed from eating",
+    "rune.nohunger.well_fed.info": "Health regeneration speed from eating: +%s%%",
+
+    "rune.nohunger.curse_of_malnutrition": "Curse of Malnutrition",
+    "rune.nohunger.curse_of_malnutrition.description": "Reduces health regeneration speed from eating",
+    "rune.nohunger.curse_of_malnutrition.info": "Health regeneration speed from eating: -%s%%",
+
     "jei.info.nohunger.cake": "Restores a percentage of missing health"
 }

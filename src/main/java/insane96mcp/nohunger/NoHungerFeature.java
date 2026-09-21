@@ -9,15 +9,21 @@ import insane96mcp.insanelib.event.CakeEatEvent;
 import insane96mcp.insanelib.event.PlayerExhaustionEvent;
 import insane96mcp.insanelib.util.MCUtils;
 import insane96mcp.nohunger.mixin.FoodDataAccessor;
+import insane96mcp.nohunger.module.RuneCompat;
 import insane96mcp.nohunger.network.message.FoodRegenSync;
 import insane96mcp.nohunger.network.message.NoHungerSync;
+import insane96mcp.nohunger.setup.NHEnchantments;
+import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -84,6 +90,13 @@ public class NoHungerFeature extends Feature {
 
     @Config(description = "(Client Only) If true, the overtime regen overlay will always render on the first row of hearts, capping at 20 health. Useful for mods that change heart rendering, showing them on the same row")
     public static Boolean otRegenOverlay$forceFirstRow = false;
+
+    @Config(min = 0d, description = "Percentage of health regeneration speed from eating added by Well Fed")
+    public static Double enchantments$wellFedRegenSpeedBonus = 0.25d;
+    @Config(min = 0d, max = 1d, description = "Percentage of health regeneration speed from eating removed by Curse of Malnutrition")
+    public static Double enchantments$curseOfMalnutritionRegenSpeedReduction = 0.35d;
+    @Config(description = "If Rune Enchanting is installed, whether chestplate-only runes granting Well Fed/Curse of Malnutrition are enabled.")
+    public static Boolean enchantments$runesEnabled = true;
 
     public void init(Module module, boolean enabledByDefault, boolean canBeDisabled) {
         super.init(module, enabledByDefault, canBeDisabled);
@@ -242,7 +255,7 @@ public class NoHungerFeature extends Feature {
         float regenStrength = getFoodRegenStrength(player);
         if (player.getHealth() >= player.getMaxHealth())
             return;
-        float healAmount = regenStrength * FOOD_REGEN_TICK_RATE;
+        float healAmount = regenStrength * getRegenSpeedMultiplier(player) * FOOD_REGEN_TICK_RATE;
         if (regenLeft < healAmount)
             healAmount = regenLeft;
         if (player.getMaxHealth() - player.getHealth() < healAmount)
@@ -254,6 +267,29 @@ public class NoHungerFeature extends Feature {
         if (regenLeft <= 0f)
             regenLeft = 0f;
         setHealOverTime(player, regenLeft, regenStrength);
+    }
+
+    /**
+     * Multiplier applied to the overtime regen speed, from Well Fed and Curse of Malnutrition (either as enchantments or
+     * as Rune Enchanting runes) on the chestplate. The total amount of health to regenerate is not affected.
+     */
+    public static float getRegenSpeedMultiplier(Player player) {
+        ItemStack chest = player.getItemBySlot(EquipmentSlot.CHEST);
+        if (chest.isEmpty())
+            return 1f;
+
+        double multiplier = 1d;
+        if (enchantments$wellFedRegenSpeedBonus > 0) {
+            Holder<Enchantment> wellFed = player.level().registryAccess().holderOrThrow(NHEnchantments.WELL_FED);
+            if (chest.getEnchantmentLevel(wellFed) > 0 || RuneCompat.getRuneLevel(chest, NHEnchantments.WELL_FED) > 0)
+                multiplier *= 1d + enchantments$wellFedRegenSpeedBonus;
+        }
+        if (enchantments$curseOfMalnutritionRegenSpeedReduction > 0) {
+            Holder<Enchantment> curseOfMalnutrition = player.level().registryAccess().holderOrThrow(NHEnchantments.CURSE_OF_MALNUTRITION);
+            if (chest.getEnchantmentLevel(curseOfMalnutrition) > 0 || RuneCompat.getRuneLevel(chest, NHEnchantments.CURSE_OF_MALNUTRITION) > 0)
+                multiplier *= 1d - enchantments$curseOfMalnutritionRegenSpeedReduction;
+        }
+        return (float) multiplier;
     }
 
     static float getFoodRegenStrength(Player player) {

@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "nohunger:well_fed",
+    "nohunger:curse_of_malnutrition"
+  ]
+}

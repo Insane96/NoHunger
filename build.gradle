@@ -81,6 +81,10 @@ dependencies {
 
     compileOnly "com.ezylang:EvalEx:3.6.0"
 
+    // Rune Enchanting integration is fully optional at runtime (checked via ModList). Kept as implementation for
+    // testing in dev runs, TODO switch back to compileOnly before release.
+    implementation "maven.modrinth:rune-enchanting:${runeenchanting_version}"
+
     implementation(jarJar("io.github.llamalad7:mixinextras-neoforge:0.5.3"))
 }
 

@@ -2,6 +2,8 @@ package insane96mcp.nohunger;
 
 import com.mojang.logging.LogUtils;
 import insane96mcp.insanelib.setup.ILModConfig;
+import insane96mcp.nohunger.module.NHRunes;
+import insane96mcp.nohunger.module.RuneCompat;
 import insane96mcp.nohunger.network.NetworkHandler;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
@@ -23,6 +25,9 @@ public class NoHunger {
         modContainer.registerConfig(ModConfig.Type.COMMON, CONFIG.spec);
 
         eventBus.addListener(NetworkHandler::register);
+
+        if (RuneCompat.isLoaded())
+            new NHRunes(eventBus);
 
         //NHRegistries.REGISTRIES.forEach(register -> register.register(modEventBus));
     }
