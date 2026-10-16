@@ -1,16 +1,16 @@
 modLoader="javafml"
 loaderVersion="${loader_version_range}"
 license="${mod_license}"
-issueTrackerURL="https://github.com/Insane96/ExperienceOverhaul/issues"
+issueTrackerURL="https://github.com/Insane96/NoHunger/issues"
 
 [[mods]]
 modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
-displayURL="https://www.curseforge.com/minecraft/mc-mods/insanes-experience-overhaul"
+displayURL="https://modrinth.com/mod/no-hunger"
 authors="Insane96MCP"
 description='''
-This mod changes Experience, Enchanting and Anvils
+Removes hunger. Health regenerates by eating food instead.
 '''
 
 [[mixins]]

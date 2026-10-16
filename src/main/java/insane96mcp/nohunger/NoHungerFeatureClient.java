@@ -144,7 +144,8 @@ public class NoHungerFeatureClient {
             }
             int totalPixels = Math.min(i * 8, Mth.ceil(regenLeft / 2f * 8f));
             int tickCount = gui.getGuiTicks();
-            random.setSeed((long) tickCount * 312871L);
+            // Same seed as vanilla Gui#renderPlayerHealth (int multiplication, overflow included) so the low health shake matches the hearts
+            random.setSeed(tickCount * 312871);
             int offsetHeartIndex = player.hasEffect(MobEffects.REGENERATION) ? tickCount % Mth.ceil(f + 5f) : -1;
 
             if (!FMLLoader.isProduction())
