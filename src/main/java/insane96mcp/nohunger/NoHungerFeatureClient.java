@@ -193,6 +193,8 @@ public class NoHungerFeatureClient {
     public static void onTooltip(ItemTooltipEvent event) {
 		if (!Feature.isEnabled(NoHungerFeature.class)
 				|| !event.getItemStack().has(DataComponents.FOOD)
+				// Fish buckets have food (for feeding nautiluses) but players can't eat them
+				|| !event.getItemStack().has(DataComponents.CONSUMABLE)
                 || !NoHungerFeature.foodTooltip$enabled)
 			return;
 		Minecraft mc = Minecraft.getInstance();
