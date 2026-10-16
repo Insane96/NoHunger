@@ -1,4 +1,4 @@
-# Upcoming
+# 2.1.0.1
 * Fixed the overtime regen overlay shaking differently from the hearts at low health after a few minutes of playing
 * Fixed mod metadata (description, issue tracker and website links) being copied from Experience Overhaul
 
