@@ -1,27 +1,32 @@
 package insane96mcp.nohunger;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import insane96mcp.insanelib.InsaneLib;
 import insane96mcp.insanelib.core.feature.Feature;
 import insane96mcp.insanelib.mixin.accessor.GuiGraphicsAccessor;
-import insane96mcp.insanelib.util.ClientUtils;
 import insane96mcp.insanelib.util.MCUtils;
 import insane96mcp.nohunger.mixin.client.GuiAccessor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.data.AtlasIds;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.util.profiling.Profiler;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.Consumable;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -34,9 +39,9 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 @EventBusSubscriber(modid = NoHunger.MOD_ID, value = Dist.CLIENT)
 public class NoHungerFeatureClient {
-    private static final ResourceLocation ARMOR_EMPTY_SPRITE = ResourceLocation.withDefaultNamespace("hud/armor_empty");
-    private static final ResourceLocation ARMOR_HALF_SPRITE = ResourceLocation.withDefaultNamespace("hud/armor_half");
-    private static final ResourceLocation ARMOR_FULL_SPRITE = ResourceLocation.withDefaultNamespace("hud/armor_full");
+    private static final Identifier ARMOR_EMPTY_SPRITE = Identifier.withDefaultNamespace("hud/armor_empty");
+    private static final Identifier ARMOR_HALF_SPRITE = Identifier.withDefaultNamespace("hud/armor_half");
+    private static final Identifier ARMOR_FULL_SPRITE = Identifier.withDefaultNamespace("hud/armor_full");
     private static final String HEALTH_LANG = NoHunger.lang("tooltip.health");
     private static final String MISSING_HEALTH_LANG = NoHunger.lang("tooltip.missing_health");
     private static final String SEC_LANG = NoHunger.lang("tooltip.sec");
@@ -51,14 +56,13 @@ public class NoHungerFeatureClient {
         });
     }
 
-    protected static void renderArmor(GuiGraphics guiGraphics, int width, int height) {
+    protected static void renderArmor(GuiGraphicsExtractor guiGraphics, int width, int height) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null)
             return;
         Gui gui = mc.gui;
-        mc.getProfiler().push(NoHunger.MOD_ID + ":armor");
+        Profiler.get().push(NoHunger.MOD_ID + ":armor");
 
-        RenderSystem.enableBlend();
         int left = width / 2 + 82;
         int top = height - gui.rightHeight;
 
@@ -66,30 +70,32 @@ public class NoHungerFeatureClient {
         for (int i = 1; level > 0 && i < 20; i += 2)
         {
             if (i < level)
-                guiGraphics.blitSprite(ARMOR_FULL_SPRITE, left, top, 9, 9);
+                guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, ARMOR_FULL_SPRITE, left, top, 9, 9);
             else if (i == level)
                 blitSpriteVerticallyMirrored(guiGraphics, ARMOR_HALF_SPRITE, left, top, 9, 9);
             else
-                guiGraphics.blitSprite(ARMOR_EMPTY_SPRITE, left, top, 9, 9);
+                guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, ARMOR_EMPTY_SPRITE, left, top, 9, 9);
             left -= 8;
         }
         if (level > 0)
             gui.rightHeight += 10;
 
-        RenderSystem.disableBlend();
-        mc.getProfiler().pop();
+        Profiler.get().pop();
     }
 
-    protected static void blitSpriteVerticallyMirrored(GuiGraphics guiGraphics, ResourceLocation sprite, int x, int y, int width, int height) {
-        TextureAtlasSprite textureAtlasSprite = Minecraft.getInstance().getGuiSprites().getSprite(sprite);
+    protected static void blitSpriteVerticallyMirrored(GuiGraphicsExtractor guiGraphics, Identifier sprite, int x, int y, int width, int height) {
+        TextureAtlasSprite textureAtlasSprite = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.GUI).getSprite(sprite);
         ((GuiGraphicsAccessor) guiGraphics).invokeInnerBlit(
+                RenderPipelines.GUI_TEXTURED,
                 textureAtlasSprite.atlasLocation(),
-                x, x + width, y, y + height, 0,
+                x, x + width, y, y + height,
                 textureAtlasSprite.getU1(), textureAtlasSprite.getU0(),
-                textureAtlasSprite.getV0(), textureAtlasSprite.getV1());
+                textureAtlasSprite.getV0(), textureAtlasSprite.getV1(),
+                -1);
     }
 
-    protected static final ResourceLocation OT_REGEN_LOCATION = NoHunger.id("textures/gui/ot_regen.png");
+    protected static final Identifier OT_REGEN_LOCATION = NoHunger.id("textures/gui/ot_regen.png");
+    protected static final int OT_REGEN_COLOR = ARGB.colorFromFloat(1f, 0.9f, 0.9f, 0.9f);
 
     // LOWEST: registerAbove(PLAYER_HEALTH, ...) always inserts immediately after PLAYER_HEALTH, so whichever mod
     // calls it last claims that adjacent slot and pushes earlier registrants (e.g. Insane Survival Overhaul's
@@ -144,15 +150,13 @@ public class NoHungerFeatureClient {
             }
             int totalPixels = Math.min(i * 8, Mth.ceil(regenLeft / 2f * 8f));
             int tickCount = gui.getGuiTicks();
-            random.setSeed((long) tickCount * 312871L);
+            // Same seed as vanilla Gui#extractPlayerHealth (int multiplication, overflow included) so the low health shake matches the hearts
+            random.setSeed(tickCount * 312871);
             int offsetHeartIndex = player.hasEffect(MobEffects.REGENERATION) ? tickCount % Mth.ceil(f + 5f) : -1;
 
-            if (!FMLLoader.isProduction())
-                player.displayClientMessage(Component.literal("Health: " + currentHealth + " totalPixels: " + totalPixels + " regenLeft: " + regenLeft + " regenStrength: " + regenStrength), true);
+            if (!FMLLoader.getCurrent().isProduction())
+                player.sendOverlayMessage(Component.literal("Health: " + currentHealth + " totalPixels: " + totalPixels + " regenLeft: " + regenLeft + " regenStrength: " + regenStrength));
 
-            // ClientUtils.setRenderColor(1.2f - (regenStrength / 0.5f), 0.78f, 0.17f, 1f);
-            ClientUtils.setRenderColor(0.9f, 0.9f, 0.9f, 1f);
-            RenderSystem.enableBlend();
             for (int l = i + j - 1; l >= 0; l--) {
                 int i1 = l / 10;
                 int j1 = l % 10;
@@ -166,11 +170,9 @@ public class NoHungerFeatureClient {
                 if (l < i) {
                     int coveredPixels = Mth.clamp(totalPixels - l * 8, 0, 9);
                     if (coveredPixels > 0)
-                        guiGraphics.blit(OT_REGEN_LOCATION, k1, l1, 0, 0, coveredPixels, 9, 9, 9);
+                        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, OT_REGEN_LOCATION, k1, l1, 0, 0, coveredPixels, 9, 9, 9, OT_REGEN_COLOR);
                 }
             }
-            RenderSystem.disableBlend();
-            ClientUtils.resetRenderColor();
         });
     }
 
@@ -190,7 +192,7 @@ public class NoHungerFeatureClient {
     @SubscribeEvent
     public static void onTooltip(ItemTooltipEvent event) {
 		if (!Feature.isEnabled(NoHungerFeature.class)
-				|| event.getItemStack().getItem().getFoodProperties(event.getItemStack(), event.getEntity()) == null
+				|| !event.getItemStack().has(DataComponents.FOOD)
                 || !NoHungerFeature.foodTooltip$enabled)
 			return;
 		Minecraft mc = Minecraft.getInstance();
@@ -198,15 +200,17 @@ public class NoHungerFeatureClient {
         if (player == null)
             return;
 
-        FoodProperties food = event.getItemStack().getItem().getFoodProperties(event.getItemStack(), event.getEntity());
+        ItemStack stack = event.getItemStack();
+        FoodProperties food = stack.get(DataComponents.FOOD);
         if (food == null)
             return;
+        Consumable consumable = stack.get(DataComponents.CONSUMABLE);
 
         //ChatFormatting color = FoodDrinks.isRawFood(event.getItemStack().getItem()) ? ChatFormatting.DARK_RED : ChatFormatting.GRAY;
         ChatFormatting color = ChatFormatting.GREEN;
         MutableComponent component = null;
         if (food.saturation() < NoHungerFeature.foodHeal$saturationThreshold && NoHungerFeature.doesHealInstantly()) {
-            float heal = NoHungerFeature.getInstantHealAmount(food, false) / 2f;
+            float heal = NoHungerFeature.getInstantHealAmount(food, consumable, false) / 2f;
             if (mc.options.advancedItemTooltips || NoHungerFeature.foodTooltip$alwaysAdvancedTooltip) {
                 component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
                         .append(Component.translatable(HEALTH_LANG));
@@ -217,9 +221,9 @@ public class NoHungerFeatureClient {
                 component = Component.translatable("nohunger.tooltip.snack");
         }
         if (food.saturation() >= NoHungerFeature.foodHeal$saturationThreshold && NoHungerFeature.doesHealOverTime()) {
-            float heal = MCUtils.computeFoodFormula(food, NoHungerFeature.foodHeal$overTime) / 2f;
+            float heal = MCUtils.computeFoodFormula(food, consumable, NoHungerFeature.foodHeal$overTime) / 2f;
             if (mc.options.advancedItemTooltips || NoHungerFeature.foodTooltip$alwaysAdvancedTooltip) {
-                float strength = MCUtils.computeFoodFormula(food, NoHungerFeature.foodHeal$overTimeStrength);
+                float strength = MCUtils.computeFoodFormula(food, consumable, NoHungerFeature.foodHeal$overTimeStrength);
                 component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
                         .append(Component.translatable(HEALTH_LANG))
                         .append(CommonComponents.space())

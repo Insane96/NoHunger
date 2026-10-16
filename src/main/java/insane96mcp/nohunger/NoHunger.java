@@ -2,10 +2,8 @@ package insane96mcp.nohunger;
 
 import com.mojang.logging.LogUtils;
 import insane96mcp.insanelib.setup.ILModConfig;
-import insane96mcp.nohunger.module.NHRunes;
-import insane96mcp.nohunger.module.RuneCompat;
 import insane96mcp.nohunger.network.NetworkHandler;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -26,14 +24,15 @@ public class NoHunger {
 
         eventBus.addListener(NetworkHandler::register);
 
-        if (RuneCompat.isLoaded())
-            new NHRunes(eventBus);
+        // TODO Rune Enchanting has no 26.1.2 version yet, re-enable (with the dependency in build.gradle) when it's ported
+        //if (RuneCompat.isLoaded())
+        //    new NHRunes(eventBus);
 
         //NHRegistries.REGISTRIES.forEach(register -> register.register(modEventBus));
     }
 
-    public static ResourceLocation id(final String path) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+    public static Identifier id(final String path) {
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 
     public static String lang(final String path) {

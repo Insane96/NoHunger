@@ -38,6 +38,8 @@ public class RuneCompat {
         if (!enchantment.equals(NHEnchantments.WELL_FED) && !enchantment.equals(NHEnchantments.CURSE_OF_MALNUTRITION))
             return 0;
 
-        return NHRunes.getRuneLevel(stack, enchantment, 1);
+        // TODO Rune Enchanting has no 26.1.2 version yet, NHRunes is excluded from compilation until it's ported
+        //return NHRunes.getRuneLevel(stack, enchantment, 1);
+        return 0;
     }
 }

@@ -14,7 +14,8 @@ import insane96mcp.nohunger.network.message.FoodRegenSync;
 import insane96mcp.nohunger.network.message.NoHungerSync;
 import insane96mcp.nohunger.setup.NHEnchantments;
 import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -23,6 +24,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.Consumable;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.EventPriority;
@@ -38,8 +40,8 @@ import javax.annotation.Nullable;
 public class NoHungerFeature extends Feature {
     private static final int FOOD_REGEN_TICK_RATE = 5;
 
-    private static ResourceLocation FOOD_REGEN_LEFT;
-    private static ResourceLocation FOOD_REGEN_STRENGTH;
+    private static Identifier FOOD_REGEN_LEFT;
+    private static Identifier FOOD_REGEN_STRENGTH;
 
     @Config(min = 0d, description = "The formula to calculate the health regenerated overtime when eating food. Leave empty to disable. Variables as nutrition, saturation, eat_seconds as numbers and can_always_eat as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
     public static String foodHeal$overTime = "nutrition";
@@ -109,7 +111,7 @@ public class NoHungerFeature extends Feature {
     public void onPlayerTick(PlayerTickEvent.Post event) {
         Player player = event.getEntity();
         if (!this.isEnabled()
-                || player.level().isClientSide)
+                || player.level().isClientSide())
             return;
 
         if (isPlayerHurt(player) || alwaysEat)
@@ -126,7 +128,7 @@ public class NoHungerFeature extends Feature {
         if (player.hasEffect(MobEffects.SATURATION) && convertSaturationToHaste) {
             MobEffectInstance effect = player.getEffect(MobEffects.SATURATION);
             //noinspection ConstantConditions; Checking with hasEffect
-            player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, (effect.getDuration() + 1) * 20, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()));
+            player.addEffect(new MobEffectInstance(MobEffects.HASTE, (effect.getDuration() + 1) * 20, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()));
             player.removeEffect(MobEffects.SATURATION);
         }
         //if (ModList.get().isLoaded("atmospheric") && convertPersistenceToSpeed) {
@@ -140,13 +142,13 @@ public class NoHungerFeature extends Feature {
     @SubscribeEvent
     public void onPlayerEat(LivingEntityUseItemEvent.Finish event) {
         if (!this.isEnabled()
-                || event.getItem().getItem().getFoodProperties(event.getItem(), event.getEntity()) == null
+                || !event.getItem().has(DataComponents.FOOD)
                 || !(event.getEntity() instanceof Player player)
-                || event.getEntity().level().isClientSide)
+                || event.getEntity().level().isClientSide())
             return;
 
-        Item item = event.getItem().getItem();
-        healOnEat(player, item, item.getFoodProperties(event.getItem(), player));
+        ItemStack stack = event.getItem();
+        healOnEat(player, stack.getItem(), stack.get(DataComponents.FOOD), stack.get(DataComponents.CONSUMABLE));
     }
 
     private static final FoodProperties CAKE_FOOD_PROPERTIES = new FoodProperties.Builder().nutrition(2).saturationModifier(0.1f).build();
@@ -154,16 +156,16 @@ public class NoHungerFeature extends Feature {
     @SubscribeEvent
     public void onCakeEat(CakeEatEvent event) {
         if (!this.isEnabled()
-                || ((Level)event.getLevel()).isClientSide)
+                || ((Level)event.getLevel()).isClientSide())
             return;
 
-        healOnEat(event.getEntity(), null, CAKE_FOOD_PROPERTIES);
+        healOnEat(event.getEntity(), null, CAKE_FOOD_PROPERTIES, null);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onFoodExhaustion(PlayerExhaustionEvent event) {
         if (!isEnabled(NoHungerFeature.class)
-                || event.getEntity().level().isClientSide
+                || event.getEntity().level().isClientSide()
                 || foodHeal$overTimeDecay == 0)
             return;
 
@@ -181,25 +183,25 @@ public class NoHungerFeature extends Feature {
      * item is null when eating cakes
      */
     @SuppressWarnings("ConstantConditions")
-    public static void healOnEat(Player player, @Nullable Item item, FoodProperties foodProperties) {
+    public static void healOnEat(Player player, @Nullable Item item, FoodProperties foodProperties, @Nullable Consumable consumable) {
         //TODO Raw Food
         //boolean isRawFood = item != null && FoodDrinks.isRawFood(item);
         if ((item == null && cakes$healOverTime) || foodProperties.saturation() >= foodHeal$saturationThreshold)
             //TODO Raw Food
-            onEatHealOverTime(player, item, foodProperties, false);
+            onEatHealOverTime(player, item, foodProperties, consumable, false);
         else
             //TODO Raw Food
-            onEatInstantHeal(player, item, foodProperties, false);
+            onEatInstantHeal(player, item, foodProperties, consumable, false);
     }
 
     /**
      * item is null when is a cake
      */
-    public static void onEatHealOverTime(Player player, @Nullable Item item, FoodProperties foodProperties, boolean isRawFood) {
+    public static void onEatHealOverTime(Player player, @Nullable Item item, FoodProperties foodProperties, @Nullable Consumable consumable, boolean isRawFood) {
         if (!doesHealOverTime())
             return;
 
-        float heal = MCUtils.computeFoodFormula(foodProperties, foodHeal$overTime);
+        float heal = MCUtils.computeFoodFormula(foodProperties, consumable, foodHeal$overTime);
         if (heal <= 0f)
             return;
         if (cakes$percentageHeal > 0 && item == null)
@@ -208,7 +210,7 @@ public class NoHungerFeature extends Feature {
             heal *= rawFoodHealPercentage;*/
         heal = applyModifiers(player, heal);
 
-        float strength = MCUtils.computeFoodFormula(foodProperties, foodHeal$overTimeStrength) / 20f;
+        float strength = MCUtils.computeFoodFormula(foodProperties, consumable, foodHeal$overTimeStrength) / 20f;
         setHealOverTime(player, heal, strength);
     }
 
@@ -216,19 +218,19 @@ public class NoHungerFeature extends Feature {
         return !StringUtils.isBlank(foodHeal$overTime) && !StringUtils.isBlank(foodHeal$overTimeStrength);
     }
 
-    private static void onEatInstantHeal(Player player, @Nullable Item item, FoodProperties foodProperties, boolean isRawFood) {
+    private static void onEatInstantHeal(Player player, @Nullable Item item, FoodProperties foodProperties, @Nullable Consumable consumable, boolean isRawFood) {
         if (!doesHealInstantly())
             return;
 
         float heal = cakes$percentageHeal > 0 && item == null
                 ? Math.max((player.getMaxHealth() - player.getHealth()) * cakes$percentageHeal.floatValue(), cakes$minHeal.floatValue())
-                : getInstantHealAmount(foodProperties, isRawFood);
+                : getInstantHealAmount(foodProperties, consumable, isRawFood);
         heal = applyModifiers(player, heal);
         player.heal(heal);
     }
 
-    public static float getInstantHealAmount(FoodProperties foodProperties, boolean isRawFood) {
-        float heal = MCUtils.computeFoodFormula(foodProperties, foodHeal$instantHeal);
+    public static float getInstantHealAmount(FoodProperties foodProperties, @Nullable Consumable consumable, boolean isRawFood) {
+        float heal = MCUtils.computeFoodFormula(foodProperties, consumable, foodHeal$instantHeal);
         /*if (isRawFood && rawFoodHealPercentage != 1d)
             heal *= rawFoodHealPercentage;*/
         return heal;
