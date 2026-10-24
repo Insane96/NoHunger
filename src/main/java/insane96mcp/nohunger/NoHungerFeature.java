@@ -8,10 +8,10 @@ import insane96mcp.insanelib.core.feature.config.Config;
 import insane96mcp.insanelib.event.CakeEatEvent;
 import insane96mcp.insanelib.event.PlayerExhaustionEvent;
 import insane96mcp.insanelib.util.MCUtils;
+import insane96mcp.nohunger.event.NHEventFactory;
 import insane96mcp.nohunger.mixin.FoodDataAccessor;
 import insane96mcp.nohunger.module.RuneCompat;
 import insane96mcp.nohunger.network.message.FoodRegenSync;
-import insane96mcp.nohunger.network.message.NoHungerSync;
 import insane96mcp.nohunger.setup.NHEnchantments;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
@@ -21,8 +21,8 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.EventPriority;
@@ -33,21 +33,29 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
 
-@LoadFeature(canBeDisabled = false)
+@LoadFeature(module = NoHunger.MAIN_MODULE, canBeDisabled = false)
 public class NoHungerFeature extends Feature {
     private static final int FOOD_REGEN_TICK_RATE = 5;
 
     private static ResourceLocation FOOD_REGEN_LEFT;
     private static ResourceLocation FOOD_REGEN_STRENGTH;
 
-    @Config(min = 0d, description = "The formula to calculate the health regenerated overtime when eating food. Leave empty to disable. Variables as nutrition, saturation, eat_seconds as numbers and can_always_eat as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
+    /**
+     * Players whose overtime regen changed without being synced to the client (e.g. due to exhaustion). Synced every {@link #FOOD_REGEN_TICK_RATE} ticks instead of on every change
+     */
+    private static final Set<Player> PENDING_REGEN_SYNC = Collections.newSetFromMap(new WeakHashMap<>());
+
+    @Config(description = "The formula to calculate the health regenerated overtime when eating food. Leave empty to disable. Variables as nutrition, saturation, eat_seconds as numbers and can_always_eat as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
     public static String foodHeal$overTime = "nutrition";
     @Config(description = "How much HP does food regen each second? Variables as nutrition, saturation, eat_seconds as numbers and can_always_eat as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html")
     public static String foodHeal$overTimeStrength = "MAX(0.15, 0.25 * saturation * (1 / nutrition))";
-    @Config(description = "Over Time Heal will be consumed at the rate of exhaustion multiplied by this")
+    @Config(min = 0d, description = "Over Time Heal will be consumed at the rate of exhaustion multiplied by this")
     public static Double foodHeal$overTimeDecay = 0.02d;
-    @Config(min = 0d, description = "The formula to calculate the health restored instantly when eating. Leave empty to disable. To have the same effect as pre-Beta 1.8 food just use \"hunger\". Variables as nutrition, saturation, eat_seconds as numbers and fast_food as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
+    @Config(description = "The formula to calculate the health restored instantly when eating. Leave empty to disable. To have the same effect as pre-Beta 1.8 food just use \"nutrition\". Variables as nutrition, saturation, eat_seconds as numbers and can_always_eat as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
     public static String foodHeal$instantHeal = "0.5 * ROUND((nutrition^1.3) * 0.35, 1) / 0.5";
     @Config(min = 0d, description = "Foods below this saturation will instantly heal, foods equal or above this threshold will have overtime heal.")
     public static Double foodHeal$saturationThreshold = 4d;
@@ -76,21 +84,6 @@ public class NoHungerFeature extends Feature {
     //@Config(description = "How much health per hunger point is restored when drinking food (e.g. stews with sipping)")
     //public static Double tconstruct$restoreHungerToHealthRatio = 1d;
 
-    @Config(description = "(Client Only) If enabled, Foods will show \"Snack\" or \"Nosh\" when the food instantly heals and \"Meal\" or \"Feast\" when the food heals over time. If advanced tooltips are enabled, the food will show how much it restores")
-    public static Boolean foodTooltip$enabled = true;
-    @Config(description = "Always show exact values in the food tooltip instead of \"Snack\", \"Feast\", etc.")
-    public static Boolean foodTooltip$alwaysAdvancedTooltip = true;
-    @Config(description = "Above how much health restored food tooltip will show Nosh instead of Snack")
-    public static Double foodTooltip$noshThreshold = 1d;
-    @Config(description = "Above how much health restored food tooltip will show Feast instead of Meal")
-    public static Double foodTooltip$feastThreshold = 7d;
-
-    @Config(description = "(Client Only) Armor is rendered in the place of Hunger bar")
-    public static Boolean renderArmorAtHunger = true;
-
-    @Config(description = "(Client Only) If true, the overtime regen overlay will always render on the first row of hearts, capping at 20 health. Useful for mods that change heart rendering, showing them on the same row")
-    public static Boolean otRegenOverlay$forceFirstRow = false;
-
     @Config(min = 0d, description = "Percentage of health regeneration speed from eating added by Well Fed")
     public static Double enchantments$wellFedRegenSpeedBonus = 0.25d;
     @Config(min = 0d, max = 1d, description = "Percentage of health regeneration speed from eating removed by Curse of Malnutrition")
@@ -112,29 +105,39 @@ public class NoHungerFeature extends Feature {
                 || player.level().isClientSide)
             return;
 
+        FoodDataAccessor foodData = (FoodDataAccessor) player.getFoodData();
         if (isPlayerHurt(player) || alwaysEat)
-            ((FoodDataAccessor) player.getFoodData()).setFoodLevel(15);
-        else
-            ((FoodDataAccessor) player.getFoodData()).setFoodLevel(20);
+            foodData.setFoodLevel(15);
+        else {
+            foodData.setFoodLevel(20);
+            // Player#isHurt is true when missing less than 1 health, so with food level at 20 vanilla natural regeneration would kick in
+            foodData.setTickTimer(0);
+        }
 
         if (player.hasEffect(MobEffects.HUNGER) && convertHungerToWeakness) {
             MobEffectInstance effect = player.getEffect(MobEffects.HUNGER);
             //noinspection ConstantConditions; Checking with hasEffect
-            player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, effect.getDuration() + 1, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()));
+            int duration = effect.isInfiniteDuration() ? MobEffectInstance.INFINITE_DURATION : effect.getDuration() + 1;
+            player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, duration, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()));
             player.removeEffect(MobEffects.HUNGER);
         }
         if (player.hasEffect(MobEffects.SATURATION) && convertSaturationToHaste) {
             MobEffectInstance effect = player.getEffect(MobEffects.SATURATION);
             //noinspection ConstantConditions; Checking with hasEffect
-            player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, (effect.getDuration() + 1) * 20, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()));
+            int duration = effect.isInfiniteDuration() ? MobEffectInstance.INFINITE_DURATION : (effect.getDuration() + 1) * 20;
+            player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, duration, effect.getAmplifier(), effect.isAmbient(), effect.isVisible(), effect.showIcon()));
             player.removeEffect(MobEffects.SATURATION);
         }
         //if (ModList.get().isLoaded("atmospheric") && convertPersistenceToSpeed) {
         //    AtmosphericIntegration.tryReplacePersistence(player);
         //}
 
-        if (player.tickCount % FOOD_REGEN_TICK_RATE == 0 && getFoodRegenLeft(player) > 0f)
-            consumeAndHealFromFoodRegen(player);
+        if (player.tickCount % FOOD_REGEN_TICK_RATE == 0) {
+            if (getFoodRegenLeft(player) > 0f)
+                consumeAndHealFromFoodRegen(player);
+            if (PENDING_REGEN_SYNC.remove(player) && player instanceof ServerPlayer serverPlayer)
+                syncHealOverTime(serverPlayer);
+        }
     }
 
     @SubscribeEvent
@@ -145,8 +148,8 @@ public class NoHungerFeature extends Feature {
                 || event.getEntity().level().isClientSide)
             return;
 
-        Item item = event.getItem().getItem();
-        healOnEat(player, item, item.getFoodProperties(event.getItem(), player));
+        ItemStack stack = event.getItem();
+        healOnEat(player, stack, stack.getItem().getFoodProperties(stack, player));
     }
 
     private static final FoodProperties CAKE_FOOD_PROPERTIES = new FoodProperties.Builder().nutrition(2).saturationModifier(0.1f).build();
@@ -167,48 +170,66 @@ public class NoHungerFeature extends Feature {
                 || foodHeal$overTimeDecay == 0)
             return;
 
-        ServerPlayer player = (ServerPlayer) event.getEntity();
+        Player player = event.getEntity();
 
         float regenLeft = getFoodRegenLeft(player);
         if (regenLeft <= 0)
             return;
         float regenStrength = getFoodRegenStrength(player);
-        regenLeft -= event.getAmount() * foodHeal$overTimeDecay.floatValue();
-        setHealOverTime(player, regenLeft, regenStrength);
+        regenLeft = Math.max(regenLeft - event.getAmount() * foodHeal$overTimeDecay.floatValue(), 0f);
+        // Exhaustion happens almost every tick while sprinting or swimming, so the sync is delayed
+        storeHealOverTime(player, regenLeft, regenStrength);
+        PENDING_REGEN_SYNC.add(player);
     }
 
     /**
-     * item is null when eating cakes
+     * stack is null when eating cakes
      */
-    @SuppressWarnings("ConstantConditions")
-    public static void healOnEat(Player player, @Nullable Item item, FoodProperties foodProperties) {
+    public static void healOnEat(Player player, @Nullable ItemStack stack, FoodProperties foodProperties) {
         //TODO Raw Food
-        //boolean isRawFood = item != null && FoodDrinks.isRawFood(item);
-        if ((item == null && cakes$healOverTime) || foodProperties.saturation() >= foodHeal$saturationThreshold)
+        //boolean isRawFood = stack != null && FoodDrinks.isRawFood(stack.getItem());
+        if (healsOverTime(foodProperties, stack == null))
             //TODO Raw Food
-            onEatHealOverTime(player, item, foodProperties, false);
+            onEatHealOverTime(player, stack, foodProperties, false);
         else
             //TODO Raw Food
-            onEatInstantHeal(player, item, foodProperties, false);
+            onEatInstantHeal(player, stack, foodProperties, false);
     }
 
     /**
-     * item is null when is a cake
+     * Whether the food heals over time or instantly. If one of the two heal types is disabled, the other one is used
      */
-    public static void onEatHealOverTime(Player player, @Nullable Item item, FoodProperties foodProperties, boolean isRawFood) {
+    public static boolean healsOverTime(FoodProperties foodProperties, boolean isCake) {
+        if (!doesHealOverTime())
+            return false;
+        if (!doesHealInstantly())
+            return true;
+        return (isCake && cakes$healOverTime) || foodProperties.saturation() >= foodHeal$saturationThreshold;
+    }
+
+    /**
+     * stack is null when is a cake
+     */
+    public static void onEatHealOverTime(Player player, @Nullable ItemStack stack, FoodProperties foodProperties, boolean isRawFood) {
         if (!doesHealOverTime())
             return;
 
         float heal = MCUtils.computeFoodFormula(foodProperties, foodHeal$overTime);
         if (heal <= 0f)
             return;
-        if (cakes$percentageHeal > 0 && item == null)
+        if (cakes$percentageHeal > 0 && stack == null)
             heal = Math.max((player.getMaxHealth() - player.getHealth()) * cakes$percentageHeal.floatValue(), cakes$minHeal.floatValue());
         /*if (isRawFood && rawFoodHealPercentage != 1d)
             heal *= rawFoodHealPercentage;*/
-        heal = applyModifiers(player, heal);
+        heal = NHEventFactory.getApplyOverTimeHealAmount(stack == null ? new ItemStack(Items.CAKE) : stack, heal, asServerPlayer(player));
+        // The overtime regen left is replaced only if the new food heals more
+        if (heal <= getFoodRegenLeft(player))
+            return;
 
         float strength = MCUtils.computeFoodFormula(foodProperties, foodHeal$overTimeStrength) / 20f;
+        // Invalid formula
+        if (strength <= 0f)
+            return;
         setHealOverTime(player, heal, strength);
     }
 
@@ -216,14 +237,14 @@ public class NoHungerFeature extends Feature {
         return !StringUtils.isBlank(foodHeal$overTime) && !StringUtils.isBlank(foodHeal$overTimeStrength);
     }
 
-    private static void onEatInstantHeal(Player player, @Nullable Item item, FoodProperties foodProperties, boolean isRawFood) {
+    private static void onEatInstantHeal(Player player, @Nullable ItemStack stack, FoodProperties foodProperties, boolean isRawFood) {
         if (!doesHealInstantly())
             return;
 
-        float heal = cakes$percentageHeal > 0 && item == null
+        float heal = cakes$percentageHeal > 0 && stack == null
                 ? Math.max((player.getMaxHealth() - player.getHealth()) * cakes$percentageHeal.floatValue(), cakes$minHeal.floatValue())
                 : getInstantHealAmount(foodProperties, isRawFood);
-        heal = applyModifiers(player, heal);
+        heal = NHEventFactory.getInstantHealAmount(stack == null ? new ItemStack(Items.CAKE) : stack, heal, asServerPlayer(player));
         player.heal(heal);
     }
 
@@ -239,15 +260,34 @@ public class NoHungerFeature extends Feature {
     }
 
     static float getFoodRegenLeft(Player player) {
-        return ModNBTData.get(player, FOOD_REGEN_LEFT, Float.class);
+        return ModNBTData.getPersisted(player, FOOD_REGEN_LEFT, Float.class);
     }
 
+    /**
+     * Sets the overtime regen and, if on server side, syncs it to the client
+     */
     public static void setHealOverTime(Player player, float amount, float strength) {
-        ModNBTData.put(player, FOOD_REGEN_LEFT, amount);
-        ModNBTData.put(player, FOOD_REGEN_STRENGTH, strength);
-        if (player instanceof ServerPlayer serverPlayer) {
-            FoodRegenSync.sync(amount, strength, serverPlayer);
-        }
+        storeHealOverTime(player, amount, strength);
+        if (player instanceof ServerPlayer serverPlayer)
+            syncHealOverTime(serverPlayer);
+    }
+
+    /**
+     * Saved in the persisted data so it's kept when leaving the End. Reset on death in {@link #onPlayerClone}
+     */
+    private static void storeHealOverTime(Player player, float amount, float strength) {
+        ModNBTData.putPersisted(player, FOOD_REGEN_LEFT, amount);
+        ModNBTData.putPersisted(player, FOOD_REGEN_STRENGTH, strength);
+    }
+
+    private static void syncHealOverTime(ServerPlayer player) {
+        PENDING_REGEN_SYNC.remove(player);
+        FoodRegenSync.sync(getFoodRegenLeft(player), getFoodRegenStrength(player), player);
+    }
+
+    @Nullable
+    private static ServerPlayer asServerPlayer(Player player) {
+        return player instanceof ServerPlayer serverPlayer ? serverPlayer : null;
     }
 
     private static void consumeAndHealFromFoodRegen(Player player) {
@@ -256,13 +296,16 @@ public class NoHungerFeature extends Feature {
         if (player.getHealth() >= player.getMaxHealth())
             return;
         float healAmount = regenStrength * getRegenSpeedMultiplier(player) * FOOD_REGEN_TICK_RATE;
+        // Invalid strength formula
+        if (healAmount <= 0f)
+            return;
         if (regenLeft < healAmount)
             healAmount = regenLeft;
         if (player.getMaxHealth() - player.getHealth() < healAmount)
             healAmount = player.getMaxHealth() - player.getHealth();
         //if (ModList.get().isLoaded("farmersdelight"))
         //    healAmount = FarmersDelightIntegration.tryApplyComfort(player, healAmount);
-        player.heal(healAmount);
+        player.heal(NHEventFactory.getOverTimeHealAmount(healAmount, asServerPlayer(player)));
         regenLeft -= healAmount;
         if (regenLeft <= 0f)
             regenLeft = 0f;
@@ -293,18 +336,33 @@ public class NoHungerFeature extends Feature {
     }
 
     static float getFoodRegenStrength(Player player) {
-        return ModNBTData.get(player, FOOD_REGEN_STRENGTH, Float.class);
-    }
-
-    private static float applyModifiers(Player player, float amount) {
-        //if (ModList.get().isLoaded("autumnity"))
-        //    amount = AutumnityIntegration.tryApplyFoulTaste(player, amount);
-        return amount;
+        return ModNBTData.getPersisted(player, FOOD_REGEN_STRENGTH, Float.class);
     }
 
     @SubscribeEvent
+    public void onPlayerClone(PlayerEvent.Clone event) {
+        // Persisted data is copied on death too, but the overtime regen must be lost when dying
+        if (event.isWasDeath())
+            storeHealOverTime(event.getEntity(), 0f, 0f);
+    }
+
+    // The client player is created again on login, respawn and dimension change, losing the overtime regen data
+    @SubscribeEvent
     public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        NoHungerSync.sync(this.isEnabled(), (ServerPlayer) event.getEntity());
+        if (event.getEntity() instanceof ServerPlayer serverPlayer)
+            syncHealOverTime(serverPlayer);
+    }
+
+    @SubscribeEvent
+    public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
+        if (event.getEntity() instanceof ServerPlayer serverPlayer)
+            syncHealOverTime(serverPlayer);
+    }
+
+    @SubscribeEvent
+    public void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+        if (event.getEntity() instanceof ServerPlayer serverPlayer)
+            syncHealOverTime(serverPlayer);
     }
 
     /**

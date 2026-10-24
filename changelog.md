@@ -1,3 +1,26 @@
+# 2.1.1.0
+* Eating a food that heals over time no longer replaces the health left to regenerate when it's higher than what the new food heals (e.g. eating a small meal after a big one no longer wastes part of the regeneration)
+* The health left to regenerate is no longer lost when leaving the End (it's still lost on death)
+* If the overtime heal or the instant heal formula is left empty, foods now use the other heal type instead of not healing at all
+* Fixed vanilla natural regeneration healing the player when missing less than 1 health
+* Fixed infinite Hunger and Saturation effects disappearing instead of being converted to infinite Weakness and Haste
+* Fixed an invalid overtime heal strength formula (or the default one with 0 nutrition foods) stopping the regeneration and making the health left to regenerate grow forever
+* Food tooltip
+  * Fixed the overtime regeneration duration showing half of the real time
+  * The duration now takes into account Well Fed and Curse of Malnutrition
+* Fixed the overtime regen overlay not showing after logging in, respawning or changing dimension until the player got hurt
+* The config is now a SERVER config and is synced to clients, so on dedicated servers tooltips and HUD use the server's values
+  * The config file is now `config/nohunger-server.toml`. `saves/<world>/serverconfig/nohunger-server.toml` can be used as a per-world override
+  * The old `nohunger-common.toml` is no longer read: if you customized it, copy your values to `nohunger-server.toml` manually
+  * Food tooltip, armor rendering and overtime regen overlay options have been moved to `config/nohunger-client.toml`, so each player can set them
+* Config descriptions no longer mention the non-existent `hunger` and `fast_food` formula variables (use `nutrition` and `can_always_eat`)
+* "Over Time Decay" can no longer be negative
+* API: `NHHealEvent` events are now actually fired
+* Reduced network packets sent while having overtime regeneration and sprinting/swimming
+* Fixed a possible crash when rendering the armor bar
+* Rune Enchanting is now declared as an optional dependency (1.3.2.0 or newer)
+* Requires InsaneLib 2.4.36.0 or newer
+
 # 2.1.0.1
 * Fixed the overtime regen overlay shaking differently from the hearts at low health after a few minutes of playing
 * Fixed mod metadata (description, issue tracker and website links) being copied from Experience Overhaul

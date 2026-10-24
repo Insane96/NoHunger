@@ -17,12 +17,19 @@ public class NoHunger {
     public static final String MOD_ID = "nohunger";
     public static final Logger LOGGER = LogUtils.getLogger();
 
+    public static final String MAIN_MODULE = MOD_ID + ":main";
+    public static final String CLIENT_MODULE = MOD_ID + ":client";
+
     public static ILModConfig CONFIG;
+    public static ILModConfig CLIENT_CONFIG;
 
     public NoHunger(IEventBus eventBus, ModContainer modContainer) {
-        CONFIG = new ILModConfig(id("main"), "Single Module", ModConfig.Type.COMMON,
+        CONFIG = new ILModConfig(ResourceLocation.parse(MAIN_MODULE), "Single Module", ModConfig.Type.SERVER,
                 eventBus, NoHunger.class.getClassLoader());
-        modContainer.registerConfig(ModConfig.Type.COMMON, CONFIG.spec);
+        modContainer.registerConfig(ModConfig.Type.SERVER, CONFIG.spec);
+        CLIENT_CONFIG = new ILModConfig(ResourceLocation.parse(CLIENT_MODULE), "Client", ModConfig.Type.CLIENT,
+                eventBus, NoHunger.class.getClassLoader());
+        modContainer.registerConfig(ModConfig.Type.CLIENT, CLIENT_CONFIG.spec);
 
         eventBus.addListener(NetworkHandler::register);
 

@@ -10,4 +10,6 @@ public interface FoodDataAccessor {
     int getFoodLevel();
     @Accessor
     void setFoodLevel(int foodLevel);
+    @Accessor
+    void setTickTimer(int tickTimer);
 }

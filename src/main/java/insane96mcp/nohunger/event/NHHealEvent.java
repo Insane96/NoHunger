@@ -56,7 +56,7 @@ public class NHHealEvent extends Event {
     public static class Apply extends NHHealEvent {
         ItemStack stack;
 
-        public Apply(float amount, ServerPlayer player, ItemStack stack) {
+        public Apply(float amount, @Nullable ServerPlayer player, ItemStack stack) {
             super(amount, player);
             this.stack = stack;
         }

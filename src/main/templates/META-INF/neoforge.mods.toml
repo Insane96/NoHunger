@@ -36,3 +36,10 @@ config="${mod_id}.mixins.json"
     versionRange="${insanelib_version_range}"
     ordering="NONE"
     side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="runeenchanting"
+    type="optional"
+    versionRange="${runeenchanting_version_range}"
+    ordering="NONE"
+    side="BOTH"

@@ -3,9 +3,12 @@ package insane96mcp.nohunger;
 import com.mojang.blaze3d.systems.RenderSystem;
 import insane96mcp.insanelib.InsaneLib;
 import insane96mcp.insanelib.core.feature.Feature;
+import insane96mcp.insanelib.core.feature.LoadFeature;
+import insane96mcp.insanelib.core.feature.config.Config;
 import insane96mcp.insanelib.mixin.accessor.GuiGraphicsAccessor;
 import insane96mcp.insanelib.util.ClientUtils;
 import insane96mcp.insanelib.util.MCUtils;
+import insane96mcp.nohunger.event.NHEventFactory;
 import insane96mcp.nohunger.mixin.client.GuiAccessor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -22,6 +25,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -32,8 +36,9 @@ import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
+@LoadFeature(module = NoHunger.CLIENT_MODULE, name = "No Hunger", canBeDisabled = false)
 @EventBusSubscriber(modid = NoHunger.MOD_ID, value = Dist.CLIENT)
-public class NoHungerFeatureClient {
+public class NoHungerFeatureClient extends Feature {
     private static final ResourceLocation ARMOR_EMPTY_SPRITE = ResourceLocation.withDefaultNamespace("hud/armor_empty");
     private static final ResourceLocation ARMOR_HALF_SPRITE = ResourceLocation.withDefaultNamespace("hud/armor_half");
     private static final ResourceLocation ARMOR_FULL_SPRITE = ResourceLocation.withDefaultNamespace("hud/armor_full");
@@ -42,11 +47,31 @@ public class NoHungerFeatureClient {
     private static final String SEC_LANG = NoHunger.lang("tooltip.sec");
     private static final String OVER_LANG = NoHunger.lang("tooltip.over");
 
+    @Config(description = "If enabled, Foods will show \"Snack\" or \"Nosh\" when the food instantly heals and \"Meal\" or \"Feast\" when the food heals over time. If advanced tooltips are enabled, the food will show how much it restores")
+    public static Boolean foodTooltip$enabled = true;
+    @Config(description = "Always show exact values in the food tooltip instead of \"Snack\", \"Feast\", etc.")
+    public static Boolean foodTooltip$alwaysAdvancedTooltip = true;
+    @Config(description = "Above how much health restored food tooltip will show Nosh instead of Snack")
+    public static Double foodTooltip$noshThreshold = 1d;
+    @Config(description = "Above how much health restored food tooltip will show Feast instead of Meal")
+    public static Double foodTooltip$feastThreshold = 7d;
+
+    @Config(description = "Armor is rendered in the place of Hunger bar")
+    public static Boolean renderArmorAtHunger = true;
+
+    @Config(description = "If true, the overtime regen overlay will always render on the first row of hearts, capping at 20 health. Useful for mods that change heart rendering, showing them on the same row")
+    public static Boolean otRegenOverlay$forceFirstRow = false;
+
+    @Override
+    public void registerEvents() {
+        // Event handlers are static and registered by @EventBusSubscriber, which also handles the mod bus ones
+    }
+
     @SubscribeEvent
     public static void registerArmorLayer(RegisterGuiLayersEvent event) {
         event.registerBelow(VanillaGuiLayers.AIR_LEVEL, NoHunger.id("armor"), (guiGraphics, partialTick) -> {
             Minecraft mc = Minecraft.getInstance();
-            if (Feature.isEnabled(NoHungerFeature.class) && NoHungerFeature.renderArmorAtHunger && mc.gameMode.canHurtPlayer() && !mc.options.hideGui)
+            if (Feature.isEnabled(NoHungerFeature.class) && renderArmorAtHunger && mc.gameMode != null && mc.gameMode.canHurtPlayer() && !mc.options.hideGui)
                 renderArmor(guiGraphics, mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
         });
     }
@@ -127,7 +152,7 @@ public class NoHungerFeatureClient {
             float maxHealth = player.getMaxHealth();
             float f = Math.max(maxHealth, Math.max(displayHealth, ceilCurrentHealth));
             int absorptionAmount = Mth.ceil(player.getAbsorptionAmount());
-            boolean forceFirstRow = NoHungerFeature.otRegenOverlay$forceFirstRow;
+            boolean forceFirstRow = otRegenOverlay$forceFirstRow;
             int rows = forceFirstRow ? 1 : Mth.ceil((f + absorptionAmount) / 2f / 10f);
             int rowHeight = Math.max(10 - (rows - 2), 3);
 
@@ -184,7 +209,7 @@ public class NoHungerFeatureClient {
         if (event.getName().equals(VanillaGuiLayers.FOOD_LEVEL))
             event.setCanceled(true);
         //Remove armor bar to render it on the right
-        if (event.getName().equals(VanillaGuiLayers.ARMOR_LEVEL) && NoHungerFeature.renderArmorAtHunger)
+        if (event.getName().equals(VanillaGuiLayers.ARMOR_LEVEL) && renderArmorAtHunger)
             event.setCanceled(true);
     }
 
@@ -192,7 +217,7 @@ public class NoHungerFeatureClient {
     public static void onTooltip(ItemTooltipEvent event) {
 		if (!Feature.isEnabled(NoHungerFeature.class)
 				|| event.getItemStack().getItem().getFoodProperties(event.getItemStack(), event.getEntity()) == null
-                || !NoHungerFeature.foodTooltip$enabled)
+                || !foodTooltip$enabled)
 			return;
 		Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
@@ -205,35 +230,43 @@ public class NoHungerFeatureClient {
 
         //ChatFormatting color = FoodDrinks.isRawFood(event.getItemStack().getItem()) ? ChatFormatting.DARK_RED : ChatFormatting.GRAY;
         ChatFormatting color = ChatFormatting.GREEN;
+        ItemStack stack = event.getItemStack();
         MutableComponent component = null;
-        if (food.saturation() < NoHungerFeature.foodHeal$saturationThreshold && NoHungerFeature.doesHealInstantly()) {
-            float heal = NoHungerFeature.getInstantHealAmount(food, false) / 2f;
-            if (mc.options.advancedItemTooltips || NoHungerFeature.foodTooltip$alwaysAdvancedTooltip) {
-                component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
-                        .append(Component.translatable(HEALTH_LANG));
-            }
-            else if (heal >= NoHungerFeature.foodTooltip$noshThreshold)
-                component = Component.translatable("nohunger.tooltip.nosh");
-            else
-                component = Component.translatable("nohunger.tooltip.snack");
-        }
-        if (food.saturation() >= NoHungerFeature.foodHeal$saturationThreshold && NoHungerFeature.doesHealOverTime()) {
-            float heal = MCUtils.computeFoodFormula(food, NoHungerFeature.foodHeal$overTime) / 2f;
-            if (mc.options.advancedItemTooltips || NoHungerFeature.foodTooltip$alwaysAdvancedTooltip) {
-                float strength = MCUtils.computeFoodFormula(food, NoHungerFeature.foodHeal$overTimeStrength);
+        if (NoHungerFeature.healsOverTime(food, false)) {
+            float healHp = NHEventFactory.getApplyOverTimeHealAmount(stack, MCUtils.computeFoodFormula(food, NoHungerFeature.foodHeal$overTime), null);
+            // HP per second
+            float strength = MCUtils.computeFoodFormula(food, NoHungerFeature.foodHeal$overTimeStrength) * NoHungerFeature.getRegenSpeedMultiplier(player);
+            if (healHp <= 0f || strength <= 0f)
+                return;
+            float heal = healHp / 2f;
+            if (mc.options.advancedItemTooltips || foodTooltip$alwaysAdvancedTooltip) {
                 component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
                         .append(Component.translatable(HEALTH_LANG))
                         .append(CommonComponents.space())
                         .append(Component.translatable(OVER_LANG))
                         .append(CommonComponents.space())
-                        .append(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal / strength))
+                        .append(InsaneLib.ONE_DECIMAL_FORMATTER.format(healHp / strength))
                         .append(Component.translatable(SEC_LANG));
             }
             else {
                 component = Component.translatable("nohunger.tooltip.meal");
-                if (heal > NoHungerFeature.foodTooltip$feastThreshold)
+                if (heal > foodTooltip$feastThreshold)
                     component = Component.translatable("nohunger.tooltip.feast");
             }
+        }
+        else if (NoHungerFeature.doesHealInstantly()) {
+            float healHp = NHEventFactory.getInstantHealAmount(stack, NoHungerFeature.getInstantHealAmount(food, false), null);
+            if (healHp <= 0f)
+                return;
+            float heal = healHp / 2f;
+            if (mc.options.advancedItemTooltips || foodTooltip$alwaysAdvancedTooltip) {
+                component = Component.literal(InsaneLib.ONE_DECIMAL_FORMATTER.format(heal))
+                        .append(Component.translatable(HEALTH_LANG));
+            }
+            else if (heal >= foodTooltip$noshThreshold)
+                component = Component.translatable("nohunger.tooltip.nosh");
+            else
+                component = Component.translatable("nohunger.tooltip.snack");
         }
         if (component != null)
             event.getToolTip().add(component.withStyle(color));
