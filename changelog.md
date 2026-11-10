@@ -1,3 +1,7 @@
+# Upcoming
+* Instant heal is now rounded to half a heart (e.g. 2.8 -> 3). The previous default formula only rounded to one decimal
+  * Existing configs must be updated manually: set "Instant heal" to `ROUND((nutrition^1.3) * 0.35 / 0.5, 0) * 0.5`
+
 # 2.1.1.0
 * Eating a food that heals over time no longer replaces the health left to regenerate when it's higher than what the new food heals (e.g. eating a small meal after a big one no longer wastes part of the regeneration)
 * The health left to regenerate is no longer lost when leaving the End (it's still lost on death)
