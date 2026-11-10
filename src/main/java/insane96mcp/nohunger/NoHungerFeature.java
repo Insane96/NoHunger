@@ -56,7 +56,7 @@ public class NoHungerFeature extends Feature {
     @Config(min = 0d, description = "Over Time Heal will be consumed at the rate of exhaustion multiplied by this")
     public static Double foodHeal$overTimeDecay = 0.02d;
     @Config(description = "The formula to calculate the health restored instantly when eating. Leave empty to disable. To have the same effect as pre-Beta 1.8 food just use \"nutrition\". Variables as nutrition, saturation, eat_seconds as numbers and can_always_eat as boolean can be used. This is evaluated with EvalEx https://ezylang.github.io/EvalEx/concepts/parsing_evaluation.html.")
-    public static String foodHeal$instantHeal = "ROUND((nutrition^1.3) * 0.35 / 0.5, 0) * 0.5";
+    public static String foodHeal$instantHeal = "0.5 * ROUND((nutrition^1.3) * 0.35, 1) / 0.5";
     @Config(min = 0d, description = "Foods below this saturation will instantly heal, foods equal or above this threshold will have overtime heal.")
     public static Double foodHeal$saturationThreshold = 4d;
 
